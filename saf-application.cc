@@ -31,7 +31,7 @@
 #include "saf-application.h"
 
 #include <algorithm>  // std::sort
-#include <vector>     // std::vector
+
 
 #include "message.h"
 
@@ -55,16 +55,6 @@ SafApplication::GetTypeId (void)
     .SetParent<Application> ()
     .SetGroupName("Applications")
     .AddConstructor<SafApplication> ()
-    .AddAttribute ("MaxPackets",
-                   "The maximum number of packets the application will send",
-                   UintegerValue (100),
-                   MakeUintegerAccessor (&SafApplication::m_count),
-                   MakeUintegerChecker<uint32_t> ())
-    .AddAttribute ("Interval",
-                   "The time to wait between packets",
-                   TimeValue (Seconds (1.0)),
-                   MakeTimeAccessor (&SafApplication::m_interval),
-                   MakeTimeChecker ())
     .AddAttribute ("Port",
                    "The application port",
                    UintegerValue (5000),
@@ -75,9 +65,34 @@ SafApplication::GetTypeId (void)
                    UintegerValue (10),
                    MakeUintegerAccessor (&SafApplication::m_request_timeout),
                    MakeUintegerChecker<uint16_t> ())
+    .AddAttribute ("DataSize",
+                   "The number of bytes in each data object.",
+                   UintegerValue (30),
+                   MakeUintegerAccessor (&SafApplication::m_dataSize),
+                   MakeUintegerChecker<uint32_t> ())
+    .AddAttribute ("ReallocationPeriod",
+                   "The number of seconds between reallocation events.",
+                   UintegerValue (256),
+                   MakeUintegerAccessor (&SafApplication::m_reallocation_period),
+                   MakeUintegerChecker<uint16_t> ())
+    .AddAttribute ("TotalDataItems",
+                   "The total number of data items in the simulation.",
+                   UintegerValue (0),
+                   MakeUintegerAccessor (&SafApplication::m_total_data_items),
+                   MakeUintegerChecker<uint16_t> ())
+    .AddAttribute ("NumNodes",
+                   "The total number of nodes in the simulation, used to calculate data items per node.",
+                   UintegerValue (0),
+                   MakeUintegerAccessor (&SafApplication::m_total_num_nodes),
+                   MakeUintegerChecker<uint16_t> ())
+    .AddAttribute ("Timeout",
+                   "The total number of seconds to wait until lookup requests timeout.",
+                   UintegerValue (10),
+                   MakeUintegerAccessor (&SafApplication::m_request_timeout),
+                   MakeUintegerChecker<uint16_t> ())
     .AddAttribute ("StorageSpace",
                 "The number of data items the node can hold",
-                UintegerValue (15),
+                UintegerValue (10),
                 MakeUintegerAccessor (&SafApplication::m_replica_space),
                 MakeUintegerChecker<uint16_t> ())
     .AddTraceSource ("Tx", "A new packet is created and is sent",
@@ -102,23 +117,10 @@ SafApplication::SafApplication ()
   m_sent = 0;
   m_socket_send = 0;
   m_socket_recv = 0;
-  m_sendEvent = EventId ();
-  m_data = 0;
-  m_port = 5000;
-  m_dataSize = 30;
   m_running = false;
 
-  m_request_timeout = 0;
-  m_reallocation_period = 5;
-  m_total_data_items = 30;
-
-  m_origianal_space = 5;
-  m_replica_space = 10;
-  m_origianal_data_items = new Data[m_origianal_space];
-  m_replica_data_items = new Data[m_replica_space];
-  m_access_frequencies = std::vector<std::vector<uint16_t> >(m_total_data_items);
-
-
+  m_origianal_data_items = 0;
+  m_replica_data_items = 0;
 }
 
 SafApplication::~SafApplication()
@@ -128,14 +130,12 @@ SafApplication::~SafApplication()
   m_socket_recv = 0;
   m_port = 0;
 
-  delete [] m_data;
   delete [] m_origianal_data_items;
   delete [] m_replica_data_items;
 
   m_origianal_space = 0;
   m_replica_space = 0;
   m_size = 0;
-  m_data = 0;
   m_dataSize = 0;
   m_request_timeout = 0;
 }
@@ -153,6 +153,18 @@ SafApplication::StartApplication (void)
   NS_LOG_FUNCTION (this);
 
   m_running = true;
+
+
+  if (m_replica_space > m_total_data_items) {
+    m_replica_space = m_total_data_items;
+  }
+
+  // in the helper there is an assert to ensure this is valid when not in optimized builds
+  m_origianal_space = m_total_data_items / m_total_num_nodes;
+
+  m_origianal_data_items = new Data[m_origianal_space];
+  m_replica_data_items = new Data[m_replica_space];
+  m_access_frequencies = std::vector<std::vector<uint16_t> >(m_total_data_items);
 
   if (m_socket_recv == 0){
     TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
@@ -182,8 +194,7 @@ SafApplication::StartApplication (void)
 
   for (uint16_t i = 1; i <= m_total_data_items; i++) {
 
-    uint16_t accessFrequency = 3;
-
+    double accessFrequency = 0.5;
     double lookupDelay = m_reallocation_period - (m_reallocation_period * accessFrequency);
 
 
@@ -202,7 +213,6 @@ SafApplication::StartApplication (void)
 
   // schedule data lookups
   ScheduleFirstLookups();
-
 }
 
 void
@@ -223,16 +233,21 @@ SafApplication::StopApplication ()
     m_socket_send = 0;
   }
 
-  Simulator::Cancel (m_sendEvent);
+  // check to see if it is still in the pending lookup list
+  for (std::set<uint16_t>::iterator it = m_pending_lookups.begin(); it != m_pending_lookups.end(); it++) {
+    NS_LOG_INFO("TODO: sim ended before request for " << *it << " timed out");
+  }
+
   Simulator::Cancel(m_reallocation_event);
 }
 
 
 void
 SafApplication::ScheduleFirstLookups() {
+  NS_LOG_FUNCTION (this);
 
-  for (uint16_t i = 0; i < m_total_data_items; i++) {
-    uint16_t dt = m_data_lookup_generator[i]->GetValue();
+  for (uint16_t i = 1; i <= m_total_data_items; i++) {
+    double dt = m_data_lookup_generator[i-1]->GetValue();
     Simulator::Schedule (Seconds(dt), &SafApplication::ScheduleNextLookup, this, i);
   }
 }
@@ -240,15 +255,18 @@ SafApplication::ScheduleFirstLookups() {
 
 void
 SafApplication::ScheduleNextLookup(uint16_t dataID) {
-
+  NS_LOG_FUNCTION (this);
   // dont schedule the next event if it is no longer running
   if (!m_running) {
+    NS_LOG_INFO("Simulation done, canceling lookup");
     return;
   }
 
   LookupData(dataID);
-  uint16_t dt = m_data_lookup_generator[dataID]->GetValue();
-  Simulator::Schedule (Seconds(dt), &SafApplication::ScheduleNextLookup, this, dataID);
+  double dt = m_data_lookup_generator[dataID-1]->GetValue();
+  if (Simulator::Now() + Seconds(dt) < m_stopTime) {
+    Simulator::Schedule (Seconds(dt), &SafApplication::ScheduleNextLookup, this, dataID);
+  }
 }
 
 void
@@ -352,11 +370,9 @@ SafApplication::HandleResponse (Ptr<Socket> socket)
         SaveDataItem(item);
 
         // remove from pending request list
-        for (uint32_t i = 0; i < m_pending_lookups.size(); i++) {
-          if (dataID == m_pending_lookups[i]) {
-            m_pending_lookups.erase(m_pending_lookups.begin()+i);
-            break;
-          }
+        std::set<uint16_t>::iterator it = m_pending_lookups.find(dataID);
+        if (dataID == *it) {
+          m_pending_lookups.erase(it);
         }
 
         NS_LOG_LOGIC("TODO: Mark cache miss, mark lookup success, remove from pending reponse list");
@@ -461,10 +477,12 @@ SafApplication::AskPeers(uint16_t dataID) {
   m_socket_send->Send (p);
   m_sent++;
 
-  m_pending_lookups.push_back(dataID);  // add to pending list
+  m_pending_lookups.insert(dataID);  // add to pending list
   NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds () << "s sent request for " << dataID);
 
-  Simulator::Schedule (Seconds(m_request_timeout), &SafApplication::LookupTimeout, this, dataID);
+  if (Simulator::Now() + Seconds(m_request_timeout) < m_stopTime) {
+    Simulator::Schedule (Seconds(m_request_timeout), &SafApplication::LookupTimeout, this, dataID);
+  }
 }
 
 void
@@ -472,11 +490,12 @@ SafApplication::LookupTimeout(uint16_t dataID) {
   NS_LOG_FUNCTION(this);
 
   // check to see if it is still in the pending lookup list
-  for (uint32_t i = 0; i < m_pending_lookups.size(); i++) {
-    if (dataID == m_pending_lookups[i]) {
-      NS_LOG_INFO("TODO: mark lookup timed out for data item");
-      break;
-    }
+
+  std::set<uint16_t>::iterator item = m_pending_lookups.find(dataID);
+
+  if (dataID == *item) {
+    NS_LOG_INFO("TODO: mark lookup timed out for data item");
+    m_pending_lookups.erase(dataID);
   }
 }
 

@@ -23,10 +23,16 @@
 
 namespace ns3 {
 
-SafApplicationHelper::SafApplicationHelper (uint16_t port)
+SafApplicationHelper::SafApplicationHelper (uint16_t port, uint16_t numNodes, uint16_t numDataitems)
 {
+  NS_ASSERT_MSG(numDataitems % numNodes == 0, "Data items MUST be divisable by the number of nodes");
+  NS_ASSERT_MSG(numDataitems != 0 && numNodes != 0, "Data items and number of nodes can not be zero");
+
+
   m_factory.SetTypeId (SafApplication::GetTypeId ());
   SetAttribute ("Port", UintegerValue (port));
+  SetAttribute ("NumNodes", UintegerValue (numNodes));
+  SetAttribute ("TotalDataItems", UintegerValue (numDataitems));
 }
 
 void

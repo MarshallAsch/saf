@@ -44,7 +44,7 @@ public:
    *
    * \param port The port the server will wait on for incoming packets
    */
-  SafApplicationHelper (uint16_t port);
+  SafApplicationHelper (uint16_t port, uint16_t numNodes, uint16_t numDataitems);
 
   /**
    * Record an attribute to be set in each Application after it is is created.

@@ -28,6 +28,9 @@
 #include "data.h"
 
 
+#include <vector>     // std::vector
+#include <set>        // std::set
+
 namespace ns3 {
 
 class Socket;
@@ -110,19 +113,15 @@ private:
 
   void LookupData(uint16_t dataID);
 
-  uint32_t m_count; //!< Maximum number of packets the application will send
-  Time m_interval; //!< Packet inter-send time
   uint32_t m_size; //!< Size of the sent packet
 
   uint32_t m_dataSize; //!< packet payload size (must be equal to m_size)
-  uint8_t *m_data; //!< packet payload data
 
   uint32_t m_sent; //!< Counter for sent packets
   Ptr<Socket> m_socket_send; //!< Socket
   Ptr<Socket> m_socket_recv; //!< Socket
 
   uint16_t m_port; //!< Remote peer port
-  EventId m_sendEvent; //!< Event to send the next packet
 
   EventId m_reallocation_event; // for pending reallocation events
 
@@ -130,9 +129,10 @@ private:
   Data* m_origianal_data_items; // the block of memory to hold the originals data items
 
   std::vector<std::vector<uint16_t> > m_access_frequencies;
-  std::vector<uint16_t> m_pending_lookups;
+  std::set<uint16_t> m_pending_lookups;
   //uint16_t* m_access_frequencies; // since the access frequencies are static and known for all data items
   uint16_t m_total_data_items;
+  uint16_t m_total_num_nodes;
 
   uint16_t m_origianal_space; // the number of data items that can be stored by the node
   uint16_t m_replica_space; // the number of data items that can be stored by the node

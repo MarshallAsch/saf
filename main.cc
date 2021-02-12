@@ -101,7 +101,8 @@ void runWired() {
 
   NS_LOG_INFO ("Create Applications.");
     // install the application onto the nodes here
-    SafApplicationHelper app (5000);
+    SafApplicationHelper app (5000, n.GetN(), n.GetN());
+    app.SetAttribute("ReallocationPeriod", UintegerValue(5));
     // any extra paramters would be set here
 
     ApplicationContainer apps = app.Install(n);
@@ -290,7 +291,7 @@ int main (int argc, char *argv[])
 
 
         // install the application onto the nodes here
-        SafApplicationHelper app (5000);
+        SafApplicationHelper app (5000, nodes.GetN(), nodes.GetN());
         // any extra paramters would be set here
 
         ApplicationContainer apps = app.Install(nodes);
