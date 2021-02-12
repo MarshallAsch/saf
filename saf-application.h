@@ -24,7 +24,7 @@
 #include "ns3/ptr.h"
 #include "ns3/ipv4-address.h"
 #include "ns3/traced-callback.h"
-
+#include "ns3/random-variable-stream.h"
 #include "data.h"
 
 
@@ -92,23 +92,19 @@ private:
   virtual void StopApplication (void);
 
   /**
-   * \brief Schedule the next packet transmission
-   * \param dt time interval between packets.
-   */
-  void ScheduleTransmit (Time dt);
-  /**
-   * \brief Send a packet
-   */
-  void Send (void);
-
-  /**
    * \brief Handle a packet reception.
    *
    * This function is called by lower layers.
    *
    * \param socket the socket the packet was received to.
    */
-  void HandleRead (Ptr<Socket> socket);
+  void HandleRequest (Ptr<Socket> socket);
+
+  void HandleResponse (Ptr<Socket> socket);
+
+  void GenerateDataItems();
+
+  void SaveDataItem(Data data);
 
   void AskPeers(uint16_t dataID);
 
@@ -122,12 +118,44 @@ private:
   uint8_t *m_data; //!< packet payload data
 
   uint32_t m_sent; //!< Counter for sent packets
-  Ptr<Socket> m_socket; //!< Socket
+  Ptr<Socket> m_socket_send; //!< Socket
+  Ptr<Socket> m_socket_recv; //!< Socket
+
   uint16_t m_port; //!< Remote peer port
   EventId m_sendEvent; //!< Event to send the next packet
 
-  Data *m_data_items; // the block of memory to hold the data items
-  uint16_t m_storage_space; // the number of data items that can be stored by the node 
+  EventId m_reallocation_event; // for pending reallocation events
+
+  Data* m_replica_data_items; // the block of memory to hold the data items
+  Data* m_origianal_data_items; // the block of memory to hold the originals data items
+
+  std::vector<std::vector<uint16_t> > m_access_frequencies;
+  std::vector<uint16_t> m_pending_lookups;
+  //uint16_t* m_access_frequencies; // since the access frequencies are static and known for all data items
+  uint16_t m_total_data_items;
+
+  uint16_t m_origianal_space; // the number of data items that can be stored by the node
+  uint16_t m_replica_space; // the number of data items that can be stored by the node
+
+  uint16_t m_request_timeout;
+  uint16_t m_reallocation_period;
+
+  bool m_running;
+
+  std::vector<Ptr<ExponentialRandomVariable> > m_data_lookup_generator;
+
+  Data GetDataItem(uint16_t dataID);
+
+  void LookupTimeout(uint16_t dataID);
+
+  void RunReplication();
+
+  void ScheduleFirstLookups();
+
+  void ScheduleNextLookup(uint16_t dataID);
+
+
+
 
   /// Callbacks for tracing the packet Tx events
   TracedCallback<Ptr<const Packet> > m_txTrace;

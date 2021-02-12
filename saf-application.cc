@@ -27,14 +27,17 @@
 #include "ns3/packet.h"
 #include "ns3/uinteger.h"
 #include "ns3/trace-source-accessor.h"
+#include "ns3/double.h"
 #include "saf-application.h"
 
+#include <algorithm>  // std::sort
+#include <vector>     // std::vector
 
 #include "message.h"
 
 /*
 
- This is a modified version that is the beginings of experimenting to implement
+ This is a modified version that is the beginnings of experimenting to implement
  SAF
  */
 namespace ns3 {
@@ -42,6 +45,8 @@ namespace ns3 {
 NS_LOG_COMPONENT_DEFINE ("SafApplication");
 
 NS_OBJECT_ENSURE_REGISTERED (SafApplication);
+
+bool AccessFrequencyComparator(std::vector<uint16_t> i, std::vector<uint16_t> j);
 
 TypeId
 SafApplication::GetTypeId (void)
@@ -65,10 +70,15 @@ SafApplication::GetTypeId (void)
                    UintegerValue (5000),
                    MakeUintegerAccessor (&SafApplication::m_port),
                    MakeUintegerChecker<uint16_t> ())
+    .AddAttribute ("RequestTimeout",
+                   "The number of seconds util a lookup request times out.",
+                   UintegerValue (10),
+                   MakeUintegerAccessor (&SafApplication::m_request_timeout),
+                   MakeUintegerChecker<uint16_t> ())
     .AddAttribute ("StorageSpace",
                 "The number of data items the node can hold",
                 UintegerValue (15),
-                MakeUintegerAccessor (&SafApplication::m_storage_space),
+                MakeUintegerAccessor (&SafApplication::m_replica_space),
                 MakeUintegerChecker<uint16_t> ())
     .AddTraceSource ("Tx", "A new packet is created and is sent",
                      MakeTraceSourceAccessor (&SafApplication::m_txTrace),
@@ -90,27 +100,44 @@ SafApplication::SafApplication ()
 {
   NS_LOG_FUNCTION (this);
   m_sent = 0;
-  m_socket = 0;
+  m_socket_send = 0;
+  m_socket_recv = 0;
   m_sendEvent = EventId ();
   m_data = 0;
   m_port = 5000;
-  m_dataSize = 0;
+  m_dataSize = 30;
+  m_running = false;
 
-  m_storage_space = 0;
-  m_data_items = new Data[m_storage_space];
+  m_request_timeout = 0;
+  m_reallocation_period = 5;
+  m_total_data_items = 30;
+
+  m_origianal_space = 5;
+  m_replica_space = 10;
+  m_origianal_data_items = new Data[m_origianal_space];
+  m_replica_data_items = new Data[m_replica_space];
+  m_access_frequencies = std::vector<std::vector<uint16_t> >(m_total_data_items);
+
+
 }
 
 SafApplication::~SafApplication()
 {
   NS_LOG_FUNCTION (this);
-  m_socket = 0;
+  m_socket_send = 0;
+  m_socket_recv = 0;
   m_port = 0;
 
   delete [] m_data;
-  delete [] m_data_items;
-  m_storage_space = 0;
+  delete [] m_origianal_data_items;
+  delete [] m_replica_data_items;
+
+  m_origianal_space = 0;
+  m_replica_space = 0;
+  m_size = 0;
   m_data = 0;
   m_dataSize = 0;
+  m_request_timeout = 0;
 }
 
 void
@@ -125,132 +152,107 @@ SafApplication::StartApplication (void)
 {
   NS_LOG_FUNCTION (this);
 
-  if (m_socket == 0)
-    {
-      TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
-      m_socket = Socket::CreateSocket (GetNode (), tid);
+  m_running = true;
 
-      if (m_socket->Bind () == -1) {
-        NS_FATAL_ERROR ("Failed to bind socket");
-      }
+  if (m_socket_recv == 0){
+    TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
+    m_socket_recv = Socket::CreateSocket (GetNode (), tid);
+    InetSocketAddress local = InetSocketAddress (Ipv4Address::GetAny (), m_port);
 
-      m_socket->Connect (InetSocketAddress (Ipv4Address::GetBroadcast(), m_port));
+    if (m_socket_recv->Bind (local) == -1) {
+      NS_FATAL_ERROR ("Failed to bind socket");
     }
+  }
 
-  //uint8_t fill[] = { 0, 1, 2, 3, 4, 5, 6};
-  //SetFill (fill, sizeof(fill), 1024);
+  if (m_socket_send == 0){
+    TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
+    m_socket_send = Socket::CreateSocket (GetNode (), tid);
 
-  m_socket->SetRecvCallback (MakeCallback (&SafApplication::HandleRead, this));
-  m_socket->SetAllowBroadcast (true);
-  m_socket->SetIpTtl(2);  // or should this be 0? to only send to 1 hop peers
-  ScheduleTransmit (Seconds (0.));
+    m_socket_send->Connect (InetSocketAddress (Ipv4Address::GetBroadcast(), m_port));
+  }
+  m_socket_recv->SetRecvCallback (MakeCallback (&SafApplication::HandleRequest, this));
+  m_socket_send->SetRecvCallback (MakeCallback (&SafApplication::HandleResponse, this));
+  m_socket_send->SetAllowBroadcast (true);
+  m_socket_send->SetIpTtl(2);  // or should this be 0? to only send to 1 hop peers
+
+
+  // fill access frequencies using random values
+  // then sort the access frequencies
+  GenerateDataItems();
+
+  for (uint16_t i = 1; i <= m_total_data_items; i++) {
+
+    uint16_t accessFrequency = 3;
+
+    double lookupDelay = m_reallocation_period - (m_reallocation_period * accessFrequency);
+
+
+    Ptr<ExponentialRandomVariable> e = CreateObject<ExponentialRandomVariable>();
+    e->SetAttribute("Mean", DoubleValue(lookupDelay));
+    m_data_lookup_generator.push_back(e);
+    std::vector<uint16_t> row(2);
+    row[0] = i; // dataID
+    row[1] = lookupDelay * 1000;   // to convert to an int
+    m_access_frequencies[i-1] = row;
+  }
+  sort(m_access_frequencies.begin(), m_access_frequencies.end(), AccessFrequencyComparator);
+
+  // schedule first reallocation event
+  m_reallocation_event = Simulator::Schedule (Seconds(m_reallocation_period), &SafApplication::RunReplication, this);
+
+  // schedule data lookups
+  ScheduleFirstLookups();
+
 }
 
 void
 SafApplication::StopApplication ()
 {
   NS_LOG_FUNCTION (this);
+  m_running = false;
 
-  if (m_socket != 0)
-    {
-      m_socket->Close ();
-      m_socket->SetRecvCallback (MakeNullCallback<void, Ptr<Socket> > ());
-      m_socket = 0;
-    }
+  if (m_socket_recv != 0) {
+    m_socket_recv->Close ();
+    m_socket_recv->SetRecvCallback (MakeNullCallback<void, Ptr<Socket> > ());
+    m_socket_recv = 0;
+  }
+
+  if (m_socket_send != 0) {
+    m_socket_send->Close ();
+    m_socket_send->SetRecvCallback (MakeNullCallback<void, Ptr<Socket> > ());
+    m_socket_send = 0;
+  }
 
   Simulator::Cancel (m_sendEvent);
+  Simulator::Cancel(m_reallocation_event);
 }
 
-
-// do I care about this?
-uint32_t
-SafApplication::GetDataSize (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return m_size;
-}
-
-// fill with real data from a byte buffer,
-// fills the send buffer with multiple full/partial copies of fill if needed
-void
-SafApplication::SetFill (uint8_t *fill, uint32_t fillSize, uint32_t dataSize)
-{
-  NS_LOG_FUNCTION (this << fill << fillSize << dataSize);
-  if (dataSize != m_dataSize)
-    {
-      delete [] m_data;
-      m_data = new uint8_t [dataSize];
-      m_dataSize = dataSize;
-    }
-
-  if (fillSize >= dataSize)
-    {
-      memcpy (m_data, fill, dataSize);
-      m_size = dataSize;
-      return;
-    }
-
-  // Do all but the final fill.
-  uint32_t filled = 0;
-  while (filled + fillSize < dataSize)
-    {
-      memcpy (&m_data[filled], fill, fillSize);
-      filled += fillSize;
-    }
-
-  // Last fill may be partial
-  memcpy (&m_data[filled], fill, dataSize - filled);
-
-  // Overwrite packet size attribute.
-  m_size = dataSize;
-}
-
-// schedule a data send event
-void
-SafApplication::ScheduleTransmit (Time dt)
-{
-  NS_LOG_FUNCTION (this << dt);
-  m_sendEvent = Simulator::Schedule (dt, &SafApplication::Send, this);
-}
 
 void
-SafApplication::Send (void)
-{
-  NS_LOG_FUNCTION (this);
+SafApplication::ScheduleFirstLookups() {
 
-  // will happen if the event gets canceled
-  NS_ASSERT (m_sendEvent.IsExpired ());
-
-  // create the packet to send, will always ensure there is content to send
-  Ptr<Packet> p;
-
-  //int8_t fill[] = { m_sent, 1, 2, 3, 4, 5, 6};
-  p = Create<Packet> (m_data, m_size);
-
-
-  Address localAddress;
-  m_socket->GetSockName (localAddress);
-
-
-  // call to the trace sinks before the packet is actually sent,
-  // so that tags added to the packet can be sent as well
-  m_txTrace (p);
-  m_txTraceWithAddresses (p, localAddress, InetSocketAddress (Ipv4Address::GetBroadcast(), m_port));
-
-  m_socket->Send (p);
-  m_sent++;
-
-  NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds () << "s client sent " << m_size << " bytes to " <<
-                Ipv4Address::GetBroadcast () << " port " << m_port);
-
-
-  if (m_sent < m_count) {
-    ScheduleTransmit (m_interval);
+  for (uint16_t i = 0; i < m_total_data_items; i++) {
+    uint16_t dt = m_data_lookup_generator[i]->GetValue();
+    Simulator::Schedule (Seconds(dt), &SafApplication::ScheduleNextLookup, this, i);
   }
 }
 
+
 void
-SafApplication::HandleRead (Ptr<Socket> socket)
+SafApplication::ScheduleNextLookup(uint16_t dataID) {
+
+  // dont schedule the next event if it is no longer running
+  if (!m_running) {
+    return;
+  }
+
+  LookupData(dataID);
+  uint16_t dt = m_data_lookup_generator[dataID]->GetValue();
+  Simulator::Schedule (Seconds(dt), &SafApplication::ScheduleNextLookup, this, dataID);
+}
+
+void
+SafApplication::HandleRequest (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
 
@@ -260,54 +262,195 @@ SafApplication::HandleRead (Ptr<Socket> socket)
 
   while ((packet = socket->RecvFrom (from)))
     {
-        NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds () << "s client received " << packet->GetSize () << " bytes from " <<
+        socket->GetSockName (localAddress);
+        NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds () << "s client received "
+                     << packet->GetSize () << " bytes from " <<
                      InetSocketAddress::ConvertFrom (from).GetIpv4 () << " port " <<
                      InetSocketAddress::ConvertFrom (from).GetPort ());
 
-
-      socket->GetSockName (localAddress);
       m_rxTrace (packet);
       m_rxTraceWithAddresses (packet, from, localAddress);
+
+
+      uint32_t size = packet->GetSize();
+      uint8_t* payload = new uint8_t[size];
+      packet->CopyData(payload, size);
+
+      if (payload[0] == uint8_t(MessageType::lookup)) {
+        NS_LOG_INFO("RECEIVED lookup command");
+
+        uint32_t requestID;
+        uint16_t dataID;
+        memcpy(&requestID, &payload[5], sizeof(requestID));
+        memcpy(&dataID, &payload[22], sizeof(dataID));
+
+        Data item = GetDataItem(dataID);
+        if (item.GetStatus() != DataStatus::stored) {
+          NS_LOG_INFO("Data item not found, not sending response");
+          continue;
+        }
+
+        NS_LOG_INFO("sending response");
+        // generate and send response
+        ResponseMessage r = ResponseMessage(requestID, item);
+                NS_LOG_INFO("made obj packet");
+
+        Ptr<Packet> responsePacket = r.ToPacket();
+
+        NS_LOG_INFO("generated packet");
+
+        socket->SendTo(responsePacket, 0, from);
+                NS_LOG_INFO("sent packet");
+
+      }
+    }
+}
+
+void
+SafApplication::HandleResponse (Ptr<Socket> socket)
+{
+  NS_LOG_FUNCTION (this << socket);
+
+  Ptr<Packet> packet;
+  Address from;
+  Address localAddress;
+
+  while ((packet = socket->RecvFrom (from)))
+    {
+        socket->GetSockName (localAddress);
+        NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds () << "s client received response "
+                     << packet->GetSize () << " bytes from " <<
+                     InetSocketAddress::ConvertFrom (from).GetIpv4 () << " port " <<
+                     InetSocketAddress::ConvertFrom (from).GetPort ());
+
+      m_rxTrace (packet);
+      m_rxTraceWithAddresses (packet, from, localAddress);
+
+      uint32_t size = packet->GetSize();
+      uint8_t* payload = new uint8_t[size];
+      packet->CopyData(payload, size);
+
+        NS_LOG_INFO("handling data received: " << payload[0]);
+
+      if (payload[0] == uint8_t(MessageType::dataResponse)) {
+        NS_LOG_INFO("handling data received");
+        uint16_t dataID;
+        uint32_t dataSize;
+
+        memcpy(&dataSize, &payload[1], sizeof(dataSize));
+        memcpy(&dataID, &payload[22], sizeof(dataID));
+
+        //std::cout << "rcv: ";
+        //for (uint32_t i = 0 ; i < size; i++) {
+        //  std::cout << unsigned(payload[i]) << " ";
+        //}
+        //std::cout << "\n";
+
+        dataSize -= sizeof(dataID);
+
+        Data item = Data(dataID, dataSize);
+        SaveDataItem(item);
+
+        // remove from pending request list
+        for (uint32_t i = 0; i < m_pending_lookups.size(); i++) {
+          if (dataID == m_pending_lookups[i]) {
+            m_pending_lookups.erase(m_pending_lookups.begin()+i);
+            break;
+          }
+        }
+
+        NS_LOG_LOGIC("TODO: Mark cache miss, mark lookup success, remove from pending reponse list");
+      }
     }
 }
 
 // ---------------------------------------------------------------
 // ---------------------------------------------------------------
+
+
+void
+SafApplication::GenerateDataItems() {
+
+  NS_LOG_FUNCTION(this);
+  for (int i = 0; i < m_origianal_space; i++) {
+    m_origianal_data_items[i] = Data(m_dataSize);
+  }
+}
+
 
 void
 SafApplication::LookupData(uint16_t dataID) {
+  NS_LOG_FUNCTION(this);
+  Data item = GetDataItem(dataID);
 
-    Data data;
-    bool found = false;
-    for (int i = 0; i < m_storage_space; i++) {
-        data = m_data_items[i];
-
-        if (data.GetDataID() == dataID) {
-            data.AccessData(); // increase access frequency
-            found = true;
-        
-            NS_LOG_LOGIC("TODO: Mark cache hit, mark lookup success");
-            // mark cache hit, mark successfull lookup
-            break;
-        }
-    }
-
-    if (!found) {
-        // send broadcast asking for the data item
-        AskPeers(dataID);
-    }
+  if (item.GetStatus() == DataStatus::stored) {
+    NS_LOG_LOGIC("TODO: Mark cache hit, mark lookup success");
+    // mark cache hit, mark successfull lookup
+  } else {
+      // send broadcast asking for the data item
+      AskPeers(dataID);
+  }
 }
 
+
+void
+SafApplication::SaveDataItem(Data data) {
+  NS_LOG_FUNCTION(this);
+
+  bool found = false;
+  bool stored = false;
+  int firstFree = -1;
+  for (uint16_t i = 0; i < m_replica_space; i++) {
+    if (!found && m_access_frequencies[i][0] == data.GetDataID()) {
+      found = true;
+    }
+
+    if (!stored && m_replica_data_items[i].GetDataID() == data.GetDataID()) {
+      stored = true;
+    }
+
+    if (firstFree != -1 && m_replica_data_items[i].GetStatus() != DataStatus::stored) {
+      firstFree = i;
+    }
+  }
+
+  if (!found || stored) {
+    NS_LOG_INFO("data: " << data.GetDataID() << " Is not being saved");
+  }
+
+  // unless there are too many data items being stored this value will never be out of bounds
+  m_replica_data_items[firstFree] = data;
+}
+
+Data
+SafApplication::GetDataItem(uint16_t dataID) {
+  NS_LOG_FUNCTION(this);
+  for (int i = 0; i < m_origianal_space; i++) {
+    if (m_origianal_data_items[i].GetDataID() == dataID) {
+      //m_origianal_data_items[i].AccessData(); // increase access frequency
+      return m_origianal_data_items[i];
+    }
+  }
+
+  for (int i = 0; i < m_replica_space; i++) {
+    if (m_replica_data_items[i].GetDataID() == dataID) {
+      //m_replica_data_items[i].AccessData(); // increase access frequency
+      return m_replica_data_items[i];
+    }
+  }
+
+  return Data();
+}
 
 
 void
 SafApplication::AskPeers(uint16_t dataID) {
-
+  NS_LOG_FUNCTION(this);
   LookupMessage m = LookupMessage(dataID);
   Ptr<Packet> p = m.ToPacket();
-  
+
   Address localAddress;
-  m_socket->GetSockName (localAddress);
+  m_socket_send->GetSockName (localAddress);
 
 
   // call to the trace sinks before the packet is actually sent,
@@ -315,12 +458,70 @@ SafApplication::AskPeers(uint16_t dataID) {
   m_txTrace (p);
   m_txTraceWithAddresses (p, localAddress, InetSocketAddress (Ipv4Address::GetBroadcast(), m_port));
 
-  m_socket->Send (p);
+  m_socket_send->Send (p);
   m_sent++;
 
+  m_pending_lookups.push_back(dataID);  // add to pending list
   NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds () << "s sent request for " << dataID);
 
-
+  Simulator::Schedule (Seconds(m_request_timeout), &SafApplication::LookupTimeout, this, dataID);
 }
+
+void
+SafApplication::LookupTimeout(uint16_t dataID) {
+  NS_LOG_FUNCTION(this);
+
+  // check to see if it is still in the pending lookup list
+  for (uint32_t i = 0; i < m_pending_lookups.size(); i++) {
+    if (dataID == m_pending_lookups[i]) {
+      NS_LOG_INFO("TODO: mark lookup timed out for data item");
+      break;
+    }
+  }
+}
+
+void
+SafApplication::RunReplication() {
+  NS_LOG_FUNCTION(this);
+
+  // check if all the items are stored
+  bool done = true;
+  for (int i = 0; i < m_replica_space; i++) {
+    if (m_replica_data_items[i].GetStatus() != DataStatus::stored) {
+      done = false;
+      break;
+    }
+  }
+
+  if (done) {
+    return;
+  }
+
+  // check to see which items are not yet found, and request them if necessary
+  for(uint16_t i = 0; i < m_replica_space; i++) {
+    bool found = false;
+    for (uint16_t j = 0; j < m_replica_space; j++) {
+      if (m_replica_data_items[j].GetStatus() == DataStatus::stored &&
+          m_replica_data_items[j].GetDataID() == m_access_frequencies[i][0]) {
+            found = true;
+            break;
+          }
+    }
+
+    if (!found) {
+      AskPeers(m_access_frequencies[i][0]);
+    }
+  }
+
+  // schedule next reallocation event
+  m_reallocation_event = Simulator::Schedule (Seconds(m_reallocation_period), &SafApplication::RunReplication, this);
+}
+
+
+// compariator for sorting access frequencies sorts highest to lowest
+bool AccessFrequencyComparator(std::vector<uint16_t> i, std::vector<uint16_t> j) {
+  return i[1] > j[1];
+}
+
 
 } // Namespace ns3

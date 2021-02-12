@@ -11,34 +11,44 @@
 
 namespace ns3 {
 
-enum DataStatus {
-    unknown = 0,
-    free = 1,
-    stored = 2,
-    pending = 4
+enum class DataStatus {
+    unknown,
+    free,
+    stored,
+    pending
 };
+
+enum class DataType {
+    unkown,
+    origianal,
+    replica
+};
+
 
 class Data
 {
 private:
     /* data */
     uint16_t m_data_id;
-    uint16_t m_size;
-    uint8_t *m_data;
-    uint8_t m_status;
-    uint16_t m_access_frequency; // how many times this data item is accessed per reloaction period
+    uint16_t m_pending_id;
+    uint32_t m_size;
+    DataStatus m_status;
+    DataType m_type;
+    //uint16_t m_access_frequency; // how many times this data item is accessed per reloaction period
 
 public:
-    Data();
-    Data(uint16_t data_id, uint8_t *payload, uint16_t size);
+    Data(); // default do not call this
+    Data(uint32_t size);    // use this constructer when creating data items
+    Data(uint16_t data_id, uint32_t size); // when saving a replica
     ~Data();
-    void AccessData();
-    void ResetAccessFrequency();
-    void SetStatus(uint8_t status);
+    //void AccessData();
+    //void ResetAccessFrequency();
+    void SetStatus(DataStatus status);
     uint16_t GetDataID();
-    uint16_t GetAccessFrequency();
-    uint8_t getStatus();
-
+    uint16_t GetPendingID();
+    uint32_t GetSize();
+    //uint16_t GetAccessFrequency();
+    DataStatus GetStatus();
 };
 
 } //namespace ns3

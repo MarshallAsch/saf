@@ -32,10 +32,10 @@
  * For the setup of the wireless parameters we have given some justification for why certain
  * default options and parameters were selected.
  *
- * The next step for part 3 will be to create a simple application to generate traffic in the network. 
+ * The next step for part 3 will be to create a simple application to generate traffic in the network.
  *
  * The following step for part 4 will be to add the ability to collect statistics about various parts
- * of the simulation. 
+ * of the simulation.
  */
 
 #include "ns3/core-module.h"
@@ -64,13 +64,92 @@ bool verbose = true;
 
 NS_LOG_COMPONENT_DEFINE ("SAF runner");
 
+
+void runWired() {
+ Address serverAddress;
+
+//
+// Explicitly create the nodes required by the topology (shown above).
+//
+  NS_LOG_INFO ("Create nodes.");
+  NodeContainer n;
+  n.Create (4);
+
+  InternetStackHelper internet;
+  internet.Install (n);
+
+  NS_LOG_INFO ("Create channels.");
+//
+// Explicitly create the channels required by the topology (shown above).
+//
+  CsmaHelper csma;
+  csma.SetChannelAttribute ("DataRate", DataRateValue (DataRate (5000000)));
+  csma.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
+  csma.SetDeviceAttribute ("Mtu", UintegerValue (1400));
+  NetDeviceContainer d = csma.Install (n);
+
+//
+// We've got the "hardware" in place.  Now we need to add IP addresses.
+//
+  NS_LOG_INFO ("Assign IP Addresses.");
+
+  Ipv4AddressHelper ipv4;
+  ipv4.SetBase ("10.1.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer i = ipv4.Assign (d);
+  serverAddress = Address(i.GetAddress (1));
+
+
+  NS_LOG_INFO ("Create Applications.");
+    // install the application onto the nodes here
+    SafApplicationHelper app (5000);
+    // any extra paramters would be set here
+
+    ApplicationContainer apps = app.Install(n);
+
+    // pick a start and end time that makes sense, maybe wait a little for the network to get setup or something
+    apps.Start(Seconds(1));
+    apps.Stop(Seconds(20));
+
+    //UdpEchoServerHelper2 server (5000);
+    //apps = server.Install (n.Get(1));
+    //apps.Start (Seconds (1.0));
+    //apps.Stop (Seconds (20.0));
+
+
+
+
+
+  AsciiTraceHelper ascii;
+  csma.EnableAsciiAll (ascii.CreateFileStream ("usaf-wire.tr"));
+  csma.EnablePcapAll ("saf-wire", false);
+
+//
+// Now, do the actual simulation.
+//
+  NS_LOG_INFO ("Run Simulation.");
+  Simulator::Run ();
+  Simulator::Destroy ();
+  NS_LOG_INFO ("Done.");
+}
+
 /**
- * This is the main entry point to start the simulator. 
+ * This is the main entry point to start the simulator.
  * Needs to set everything up so that it can run
  *
  */
 int main (int argc, char *argv[])
 {
+
+    // application parameters to be added
+        // num nodes
+        // num data items (must be less than 100 data items )
+        // memory space - C (10, 1-39)
+        // data item size
+            // data access rates for each item is known and constant
+        // relocation period - T (unused for SAF) (256, 1-8192)
+        // max node speed - d (1)
+        // communication range - R (7, 1-19)
+        // simulation time = 50000
 
   double simulationTime = 20; //3600 * 1; //seconds
 
@@ -96,12 +175,14 @@ int main (int argc, char *argv[])
   // the run number should be incremented each time this simulation is run to ensure streams do not overlap
   RngSeedManager::SetSeed(seed);
 
+    runWired();
+    return 0;
 
 
     for (int i = 0; i < numRuns; i++)
     {
         RngSeedManager::SetRun(i);
-        
+
         // start loop here for number of runs
 
         // create node containers
@@ -120,7 +201,7 @@ int main (int argc, char *argv[])
 
         y->SetAttribute ("Min", DoubleValue (0.0));
         y->SetAttribute ("Max", DoubleValue (max_y));
-       
+
         positionAlloc->SetX(x);
         positionAlloc->SetY(y);
         positionAlloc->SetZ(0.0);  // all of the nodes are at ground level, do I need to change this?
@@ -133,7 +214,7 @@ int main (int argc, char *argv[])
 
         pause->SetAttribute ("Min", DoubleValue (min_pause));
         pause->SetAttribute ("Max", DoubleValue (max_pause));
-        
+
 
         // create mobility model
         MobilityHelper mobility;
@@ -150,8 +231,8 @@ int main (int argc, char *argv[])
         // create the wifi ad hoc network interfaces.
 
         YansWifiPhyHelper wifiPhy = YansWifiPhyHelper::Default();
-        wifiPhy.SetPcapDataLinkType (YansWifiPhyHelper::DLT_IEEE802_11_RADIO); 
-    
+        wifiPhy.SetPcapDataLinkType (YansWifiPhyHelper::DLT_IEEE802_11_RADIO);
+
         // Rx and Tx gain should be 0, because apparenlty thats a rule for mobile devices from the FCC?
         // maybe just a small num between 0 and 5?
         // leaving the default rx sensitivity of -101dB
@@ -161,26 +242,26 @@ int main (int argc, char *argv[])
         // ChannelConditionModel - dynamicly change model if there is LOS or not if using buildings
         // friisPropogationLossModel - distance propogation?
                 // -- assumes free space not great choice
-        //COST hata model 
+        //COST hata model
                 // -- urban area - requires specifying the antena locations
         // log distance path loss
                 // -- subarban, probably this one
 
         //delay propogation, constant speed, note this assumes the earth is flat, still use it
-        // the simulation areas are small enough that it should be fine. 
+        // the simulation areas are small enough that it should be fine.
 
-        
+
         YansWifiChannelHelper wifiChannel;
-        
+
         wifiChannel = YansWifiChannelHelper::Default();
         wifiChannel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
 
         // I found a paper that measured values for the exponent and reference loss
         // exponent = between < 2 and > 6, depending on envirionment, open hallway and crossing walls and floors respectivly
         // since this simiulation is assuming a city/town setting we will select a value of n of 3 to account for mostly open outdoor space with some obsticles
-        // reference loss for the 2.4 GHz is arround 41.7 dB 
+        // reference loss for the 2.4 GHz is arround 41.7 dB
         // apps.dtic.mil/dtic/tr/fulltext/u2/a25656s.pdf (page 19)
-        wifiChannel.AddPropagationLoss("ns3::LogDistancePropagationLossModel", 
+        wifiChannel.AddPropagationLoss("ns3::LogDistancePropagationLossModel",
                                         "Exponent", DoubleValue(3) ,
                                         "ReferenceDistance", DoubleValue(1.0),
                                         "ReferenceLoss", DoubleValue(41.7));
@@ -204,7 +285,7 @@ int main (int argc, char *argv[])
         internet.Install(nodes);
 
         Ipv4AddressHelper ipv4;
-        ipv4.SetBase("10.1.0.0", "255.255.0.0");  // support up to 65534 devices in network. 
+        ipv4.SetBase("10.1.0.0", "255.255.0.0");  // support up to 65534 devices in network.
         Ipv4InterfaceContainer interfaces = ipv4.Assign(devices);
 
 
@@ -217,6 +298,12 @@ int main (int argc, char *argv[])
         // pick a start and end time that makes sense, maybe wait a little for the network to get setup or something
         apps.Start(Seconds(1));
         apps.Stop(Seconds(simulationTime));
+
+        //UdpEchoServerHelper2 server (5000);
+        //apps = server.Install (nodes.Get(1));
+        //apps.Start (Seconds (1.0));
+        //apps.Stop (Seconds (20.0));
+
 
         // actually run the simulation
         //AnimationInterface anim( "animation-test.xml");

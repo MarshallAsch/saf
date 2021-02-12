@@ -4,49 +4,49 @@
 
 namespace ns3 {
 
-Data::Data() 
+// default when creating the lists
+Data::Data()
 {
-    m_size = 0;
-    m_data = NULL;
     m_data_id = 0;
-    m_access_frequency = 0;
+    m_pending_id = 0;
+    m_size = 0;
+    //m_access_frequency = 0;
+    m_status = DataStatus::free;
+    m_type = DataType::unkown;
 }
 
-
-Data::Data(uint16_t data_id, uint8_t *payload, uint16_t size)
+// when generating a new data item
+Data::Data(uint32_t size)
 {
-    m_data = new uint8_t[size];
-    memcpy(m_data, payload, size);
-    m_data_id = data_id;
+    static uint16_t id = 1;
+    m_data_id = id++;
+    m_pending_id = 0;
     m_size = size;
-    m_access_frequency = 0;
-    m_status = 0;
+    m_status = DataStatus::stored;
+    m_type = DataType::origianal;
+}
+
+// when saving a data item
+Data::Data(uint16_t data_id, uint32_t size)
+{
+    m_data_id = data_id;
+    m_pending_id = 0;
+    m_size = size;
+    m_status = DataStatus::stored;
+    m_type = DataType::replica;
 }
 
 Data::~Data()
 {
-    delete[] m_data;
-    m_data = 0;
     m_data_id = 0;
+    m_pending_id = 0;
     m_size = 0;
-    m_access_frequency = 0;
-    m_status = 0;
-}
-
-void 
-Data::AccessData()
-{
-    m_access_frequency++;
+    m_status = DataStatus::unknown;
+    m_type = DataType::unkown;
 }
 
 void
-Data::ResetAccessFrequency()
-{
-    m_access_frequency = 0;
-}
-
-void
-Data::SetStatus(uint8_t status)
+Data::SetStatus(DataStatus status)
 {
     m_status = status;
 }
@@ -58,15 +58,22 @@ Data::GetDataID()
 }
 
 uint16_t
-Data::GetAccessFrequency()
+Data::GetPendingID()
 {
-    return m_access_frequency;
+    return m_pending_id;
 }
 
-uint8_t
-Data::getStatus()
+uint32_t
+Data::GetSize()
+{
+    return m_size;
+}
+
+DataStatus
+Data::GetStatus()
 {
     return m_status;
 }
+
 
 } // Namespace ns3
