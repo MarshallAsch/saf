@@ -59,6 +59,6 @@ RoutingType getRoutingType(std::string str);
 ///   success or failure. On failure, the second part of the returned pair will be false.
 std::pair<ns3::RandomWalk2dMobilityModel::Mode, bool> getWalkMode(std::string str);
 
-};  // namespace rhpman
+};  // namespace saf
 
 #endif

@@ -25,35 +25,33 @@
 #include "ns3/random-variable-stream.h"
 #include "ns3/random-walk-2d-mobility-model.h"
 
-
 namespace saf {
 
+/*
+Simulation variables:
+- sim width
+- sim height
+- sim time
+- number of nodes
+- seed
+- simulation number
+- communication range
 
-    /*
-    Simulation variables:
-    - sim width
-    - sim height
-    - sim time
-    - number of nodes
-    - seed
-    - simulation number
-    - communication range
+mobility model:
+ - max speed
+ - min speed
+ - min pause time
+ - max pause time
 
-    mobility model:
-     - max speed
-     - min speed
-     - min pause time
-     - max pause time
-
-    saf param:
-    - request timeout time
-    - data item size
-    - relocation period
-    - total data items
-    - storage space
-    - access frequency calcualation method (1,2,3)
-    - standard deviation (default 0 case 3 = case 1)
-    */
+saf param:
+- request timeout time
+- data item size
+- relocation period
+- total data items
+- storage space
+- access frequency calcualation method (1,2,3)
+- standard deviation (default 0 case 3 = case 1)
+*/
 
 // TODO: Add parameters for neighborhood sizes, tau and sigma.
 
@@ -64,7 +62,6 @@ namespace saf {
 ///     method.
 /// \see SimulationParameters::parse
 class SimulationParameters {
-
  public:
   /// Simulation RNG seed.
   uint32_t seed;
@@ -86,7 +83,6 @@ class SimulationParameters {
 
   /// The velocity of the partition-bound nodes.
   ns3::Ptr<ns3::UniformRandomVariable> pbnVelocity;
-
 
   /// Time between profile updates.
   ns3::Time profileUpdateDelay;
@@ -120,7 +116,6 @@ class SimulationParameters {
   /// The radi`connectivity for each node.
   double wifiRadius;
 
-
   SimulationParameters() {}
 
   /// \brief Parses command line options to set simulation parameters.
@@ -135,6 +130,6 @@ class SimulationParameters {
   static std::pair<SimulationParameters, bool> parse(int argc, char* argv[]);
 };
 
-}  // namespace rhpman
+}  // namespace saf
 
 #endif

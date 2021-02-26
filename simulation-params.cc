@@ -30,7 +30,7 @@ namespace saf {
 std::pair<SimulationParameters, bool> SimulationParameters::parse(int argc, char* argv[]) {
   /* Default simulation values. */
   // Simulation run time.
-  double optRuntime = 50000_seconds; //40.0_minutes;
+  double optRuntime = 50000_seconds;  // 40.0_minutes;
 
   // Simulation seed.
   uint32_t optSeed = 1;
@@ -39,31 +39,30 @@ std::pair<SimulationParameters, bool> SimulationParameters::parse(int argc, char
   uint32_t optRunNum = 1;
 
   // Node parameters.
-  uint32_t optTotalNodes = 40;                  // constant
+  uint32_t optTotalNodes = 40;  // constant
 
   // Simulation area parameters.
-  double optAreaWidth = 50.0_meters;            // constant
-  double optAreaLength = 50.0_meters;           // constant
+  double optAreaWidth = 50.0_meters;   // constant
+  double optAreaLength = 50.0_meters;  // constant
 
-   //node movement speed
-   double optMinSpeed = 1.0_mps;                // constant
-   double optMaxSpeed = 1.0_mps;                // constant
+  // node movement speed
+  double optMinSpeed = 1.0_mps;  // constant
+  double optMaxSpeed = 1.0_mps;  // constant
 
-   //set pause time for
-   double optMinPause = 1.0_seconds;            // not described
-   double optMaxPause = 10.0_seconds;           // not described
+  // set pause time for
+  double optMinPause = 1.0_seconds;   // not described
+  double optMaxPause = 10.0_seconds;  // not described
 
-   double optWifiRadius = 7.0_meters;           // variable R
+  double optWifiRadius = 7.0_meters;  // variable R
 
-   double optRequestTimeout = 10.0_seconds;     // not described
-   uint32_t optDataSize = 256;                  // not described
-   double optRelocationPeriod = 256_seconds;    // variable T
-   uint16_t optTotalDataItems = 40;             // constant
-   uint16_t optReplicaSpace = 10;               // variable C
+  double optRequestTimeout = 10.0_seconds;   // not described
+  uint32_t optDataSize = 256;                // not described
+  double optRelocationPeriod = 256_seconds;  // variable T
+  uint16_t optTotalDataItems = 40;           // constant
+  uint16_t optReplicaSpace = 10;             // variable C
 
-   int optDataFrequencyType = 1                 // option 1, 2 or 3
-   double optStandardDeviation = 0.0;           // makes case 3 == case1, only for case 3
-
+  int optDataFrequencyType = 1            // option 1, 2 or 3
+      double optStandardDeviation = 0.0;  // makes case 3 == case1, only for case 3
 
   // Link and network parameters.
   std::string optRoutingProtocol = "dsdv";
@@ -227,4 +226,4 @@ std::pair<SimulationParameters, bool> SimulationParameters::parse(int argc, char
 
   return std::pair<SimulationParameters, bool>(result, ok);
 }
-}  // namespace rhpman
+}  // namespace saf
