@@ -31,7 +31,7 @@ std::pair<SimulationParameters, bool> SimulationParameters::parse(int argc, char
   /* Default simulation values. */
   // Simulation run time.
   double optRuntime = 50000_seconds;  // 40.0_minutes;
-
+  double optStartupDelay = 1_seconds;
   // Simulation seed.
   uint32_t optSeed = 1;
 
@@ -61,8 +61,8 @@ std::pair<SimulationParameters, bool> SimulationParameters::parse(int argc, char
   uint16_t optTotalDataItems = 40;           // constant
   uint16_t optReplicaSpace = 10;             // variable C
 
-  int optDataFrequencyType = 1            // option 1, 2 or 3
-      double optStandardDeviation = 0.0;  // makes case 3 == case1, only for case 3
+  int optDataFrequencyType = 1;       // option 1, 2 or 3
+  double optStandardDeviation = 0.0;  // makes case 3 == case1, only for case 3
 
   // Link and network parameters.
   std::string optRoutingProtocol = "dsdv";
@@ -73,6 +73,7 @@ std::pair<SimulationParameters, bool> SimulationParameters::parse(int argc, char
   /* Setup commandline option for each simulation parameter. */
   CommandLine cmd;
   cmd.AddValue("run-time", "Simulation run time in seconds", optRuntime);
+  cmd.AddValue("start-delay", "Number of seconds before the application starts", optStartupDelay);
   cmd.AddValue("seed", "Simulation seed", optSeed);
   cmd.AddValue("run", "Simulation run", optRunNum);
   cmd.AddValue("total-nodes", "Total number of nodes in the simulation", optTotalNodes);
@@ -96,42 +97,24 @@ std::pair<SimulationParameters, bool> SimulationParameters::parse(int argc, char
       "The amount of time between when the relocation process runs",
       optRelocationPeriod);
 
-  cmd.AddValue("wcol", "Weight of colocation in delivery probability calculations", optWcol);
   cmd.AddValue(
-      "profile-update-delay",
-      "Number of seconds between profile updates",
-      optProfileUpdateDelay);
+      "data-items",
+      "The total number of data items that will be stored",
+      optTotalDataItems);
+  cmd.AddValue(
+      "replica-space",
+      "The number of replicas that can be stored per node",
+      optReplicaSpace);
+  cmd.AddValue(
+      "access-frequency-type",
+      "Specify the access frequency algorithm to use [1,2, or 3]",
+      optDataFrequencyType);
 
-  cmd.AddValue("grid-rows", "Number of rows in the partition grid", optRows);
-  cmd.AddValue("grid-cols", "Number of columns in the partition grid", optCols);
-  cmd.AddValue("traveller-velocity", "Velocity of traveller nodes in m/s", optTravellerVelocity);
   cmd.AddValue(
-      "traveller-walk-dist",
-      "The distance in meters that traveller walks before changing "
-      "directions",
-      optTravellerWalkDistance);
-  cmd.AddValue(
-      "traveller-walk-time",
-      "The time in seconds that should pass before a traveller changes "
-      "directions",
-      optTravellerWalkTime);
-  cmd.AddValue(
-      "traveller-walk-mode",
-      "Should a traveller change direction after distance walked or time "
-      "passed; options are 'distance' or 'time' ",
-      optTravellerWalkMode);
-  cmd.AddValue(
-      "pbn-velocity-min",
-      "Minimum velocity of partition-bound-nodes in m/s",
-      optPbnVelocityMin);
-  cmd.AddValue(
-      "pbn-velocity-max",
-      "Maximum velocity of partition-bound-nodes in m/s",
-      optPbnVelocityMax);
-  cmd.AddValue(
-      "pbn-velocity-change-after",
-      "Number of seconds after which each partition-bound node should change velocity",
-      optPbnVelocityChangeAfter);
+      "standard-deviation",
+      "The σ to use for tha calculation of the access frequencies for method 3",
+      optStandardDeviation);
+
   cmd.AddValue("routing", "One of either 'DSDV' or 'AODV'", optRoutingProtocol);
   cmd.AddValue("animation-xml", "Output file path for NetAnim trace file", animationTraceFilePath);
   cmd.Parse(argc, argv);
@@ -139,31 +122,65 @@ std::pair<SimulationParameters, bool> SimulationParameters::parse(int argc, char
   /* Parse the parameters. */
 
   bool ok = true;
-  SimulationParameters result;
-  if (optCarryingThreshold < 0 || optCarryingThreshold > 1) {
-    NS_LOG_ERROR("Carrying threshold (" << optCarryingThreshold << ") is not a probability");
-    return std::pair<SimulationParameters, bool>(result, false);
-  }
-  if (optForwardingThreshold < 0 || optForwardingThreshold > 1) {
-    NS_LOG_ERROR("Forwarding threshold (" << optForwardingThreshold << ") is not a probability");
-    return std::pair<SimulationParameters, bool>(result, false);
-  }
-  if (optWcol < 0 || optWcol > 1) {
-    NS_LOG_ERROR("Colocation weight (" << optWcol << ") is not a probability");
-    return std::pair<SimulationParameters, bool>(result, false);
-  }
-  if (optWcdc < 0 || optWcdc > 1) {
-    NS_LOG_ERROR("Degree connectivity weight (" << optWcdc << ") is not a probability");
-    return std::pair<SimulationParameters, bool>(result, false);
-  }
 
-  RandomWalk2dMobilityModel::Mode travellerWalkMode;
-  std::tie(travellerWalkMode, ok) = getWalkMode(optTravellerWalkMode);
-  if (!ok) {
-    NS_LOG_ERROR("Unrecognized walk mode '" + optTravellerWalkMode + "'.");
+  // maximum number of data items
+  // ac 1 has a max number of data items of 100
+  // ac 2 has a max number of data items of 40
+  // ac 3 has a max number of data items of 100
+
+  SimulationParameters result;
+  if (optStartupDelay < 0) {
+    NS_LOG_ERROR("startup delay(" << optStartupDelay << ") is cannot be negative");
+    return std::pair<SimulationParameters, bool>(result, false);
   }
-  if (!optTravellerWalkDistance) {
-    optTravellerWalkDistance = std::min(optAreaWidth, optAreaLength);
+  if (optRuntime < 0) {
+    NS_LOG_ERROR("simulation run time (" << optRuntime << ") is cannot be negative");
+    return std::pair<SimulationParameters, bool>(result, false);
+  }
+  if (optDataFrequencyType < 0 || optDataFrequencyType > 3) {
+    NS_LOG_ERROR(
+        "Access frequency type (" << optDataFrequencyType
+                                  << ") is not a valid, must be one of [1,2,3]");
+    return std::pair<SimulationParameters, bool>(result, false);
+  }
+  if (optReplicaSpace > 150) {
+    NS_LOG_ERROR(
+        "Replica storage space (" << optReplicaSpace
+                                  << ") is not valid, probably a signed overflow");
+    return std::pair<SimulationParameters, bool>(result, false);
+  }
+  if (optRelocationPeriod < 0) {
+    NS_LOG_ERROR("replica allocation period (" << optRelocationPeriod << ") is cannot be negative");
+    return std::pair<SimulationParameters, bool>(result, false);
+  }
+  if (optRequestTimeout < 0) {
+    NS_LOG_ERROR("request timeout (" << optRequestTimeout << ") is cannot be negative");
+    return std::pair<SimulationParameters, bool>(result, false);
+  }
+  if (optMinPause < 0) {
+    NS_LOG_ERROR("pause time minimum (" << optMinPause << ") is cannot be negative");
+    return std::pair<SimulationParameters, bool>(result, false);
+  }
+  if (optMaxPause < optMinPause) {
+    NS_LOG_ERROR("pause time max (" << optMaxPause << ") is cannot be less than the minimum");
+    return std::pair<SimulationParameters, bool>(result, false);
+  }
+  if (optMinSpeed < 0 || optMinSpeed > 60) {
+    NS_LOG_ERROR(
+        "speed minimum (" << optMinSpeed << ") is cannot be negative, or greater than 60 m/s");
+    return std::pair<SimulationParameters, bool>(result, false);
+  }
+  if (optMaxSpeed < optMinSpeed) {
+    NS_LOG_ERROR("speed max (" << optMaxPause << ") is cannot be less than the minimum");
+    return std::pair<SimulationParameters, bool>(result, false);
+  }
+  if (optAreaLength < 0) {
+    NS_LOG_ERROR("simulation length (" << optAreaLength << ") is cannot be negative");
+    return std::pair<SimulationParameters, bool>(result, false);
+  }
+  if (optAreaWidth < 0) {
+    NS_LOG_ERROR("simulation width (" << optAreaWidth << ") is cannot be negative");
+    return std::pair<SimulationParameters, bool>(result, false);
   }
 
   RoutingType routingType = getRoutingType(optRoutingProtocol);
@@ -171,57 +188,71 @@ std::pair<SimulationParameters, bool> SimulationParameters::parse(int argc, char
     NS_LOG_ERROR("Unrecognized routing type '" + optRoutingProtocol + "'.");
     return std::pair<SimulationParameters, bool>(result, false);
   }
-
-  if (optNodesPerPartition * optCols * optRows > optTotalNodes) {
+  if (optTotalDataItems == 0) {
+    NS_LOG_ERROR("Number of data items (" << optTotalDataItems << ") cannot be 0");
+    return std::pair<SimulationParameters, bool>(result, false);
+  }
+  if (optTotalNodes == 0) {
+    NS_LOG_ERROR("Number of nodes (" << optTotalNodes << ") cannot be 0");
+    return std::pair<SimulationParameters, bool>(result, false);
+  }
+  if (optTotalDataItems % optTotalNodes != 0) {
     NS_LOG_ERROR(
-        "Too few nodes (" << optTotalNodes << ") to populate all " << optCols * optRows
-                          << " partitions with " << optNodesPerPartition << " nodes.");
+        "Number of data items (" << optTotalDataItems
+                                 << ") must be divisable by the number of nodes (" << optTotalNodes
+                                 << ")");
     return std::pair<SimulationParameters, bool>(result, false);
   }
-
-  if (optPercentageDataOwners < 0.0 || optPercentageDataOwners > 100.0) {
-    NS_LOG_ERROR("percentage of data owners (" << optPercentageDataOwners << "%) is out of range");
-    return std::pair<SimulationParameters, bool>(result, false);
-  }
-
-  Ptr<ConstantRandomVariable> travellerVelocityGenerator = CreateObject<ConstantRandomVariable>();
-  travellerVelocityGenerator->SetAttribute("Constant", DoubleValue(optTravellerVelocity));
-
-  Ptr<UniformRandomVariable> pbnVelocityGenerator = CreateObject<UniformRandomVariable>();
-  pbnVelocityGenerator->SetAttribute("Min", DoubleValue(optPbnVelocityMin));
-  pbnVelocityGenerator->SetAttribute("Max", DoubleValue(optPbnVelocityMax));
 
   result.seed = optSeed;
+  result.simulationNumber = optRunNum;
   result.runtime = Seconds(optRuntime);
-  result.area = SimulationArea(
-      std::pair<double, double>(0.0, 0.0),
-      std::pair<double, double>(optAreaWidth, optAreaLength));
-  result.rows = optRows;
-  result.cols = optCols;
+
+  // create position allocator
+  Ptr<RandomRectanglePositionAllocator> positionAlloc =
+      CreateObject<RandomRectanglePositionAllocator>();
+
+  Ptr<RandomVariableStream> x = CreateObject<UniformRandomVariable>();
+  Ptr<RandomVariableStream> y = CreateObject<UniformRandomVariable>();
+
+  x->SetAttribute("Min", DoubleValue(0.0));
+  x->SetAttribute("Max", DoubleValue(optAreaWidth));
+
+  y->SetAttribute("Min", DoubleValue(0.0));
+  y->SetAttribute("Max", DoubleValue(optAreaLength));
+
+  positionAlloc->SetX(x);
+  positionAlloc->SetY(y);
+  positionAlloc->SetZ(0.0);  // all of the nodes are at ground level, do I need to change this?
+
+  result.positionAllocator = positionAlloc;
 
   result.totalNodes = optTotalNodes;
-  result.dataOwners = std::round(optTotalNodes * (optPercentageDataOwners / 100.0));
+  result.totalDataItems = optTotalDataItems;
 
-  result.travellerNodes = optTotalNodes - (optNodesPerPartition * (optRows * optCols));
-  result.travellerVelocity = travellerVelocityGenerator;
-  result.travellerDirectionChangePeriod = Seconds(optTravellerWalkTime);
-  result.travellerDirectionChangeDistance = optTravellerWalkDistance;
-  result.travellerWalkMode = travellerWalkMode;
+  result.requestTimeout = Seconds(optRequestTimeout);
+  result.relocationPeriod = Seconds(optRelocationPeriod);
+  result.startupDelay = Seconds(optStartupDelay);
 
-  result.nodesPerPartition = optNodesPerPartition;
-  result.pbnVelocity = pbnVelocityGenerator;
-  result.pbnVelocityChangePeriod = Seconds(optPbnVelocityChangeAfter);
+  // speed
+  Ptr<RandomVariableStream> speed = CreateObject<UniformRandomVariable>();
+  speed->SetAttribute("Min", DoubleValue(optMinSpeed));
+  speed->SetAttribute("Max", DoubleValue(optMaxSpeed));
+  result.speed = speed;
+
+  // pause
+  Ptr<RandomVariableStream> pause = CreateObject<UniformRandomVariable>();
+  pause->SetAttribute("Min", DoubleValue(optMinPause));
+  pause->SetAttribute("Max", DoubleValue(optMaxSpeed));
+  result.pause = pause;
+
+  result.replicaSpace = optReplicaSpace;
+  result.dataSize = optDataSize;
+  result.accessFrequencyType = optDataFrequencyType;
+  result.standardDeviation = optStandardDeviation;
 
   result.routingProtocol = routingType;
   result.wifiRadius = optWifiRadius;
-  result.carryingThreshold = optCarryingThreshold;
-  result.forwardingThreshold = optForwardingThreshold;
-  result.neighborhoodSize = optNeighborhoodSize;
-  result.electionNeighborhoodSize = optElectionNeighborhoodSize;
-  result.wcdc = optWcdc;
-  result.wcol = optWcol;
-  result.profileUpdateDelay = Seconds(optProfileUpdateDelay);
-
   result.netanimTraceFilePath = animationTraceFilePath;
 
   return std::pair<SimulationParameters, bool>(result, ok);

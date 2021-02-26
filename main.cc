@@ -59,8 +59,12 @@
 #include "ns3/yans-wifi-helper.h"
 
 #include "saf-helper.h"
+#include "simulation-params.h"
+#include "util.h"
 
 using namespace ns3;
+using namespace saf;
+
 bool verbose = true;
 
 NS_LOG_COMPONENT_DEFINE("SAF runner");
@@ -146,176 +150,134 @@ int main(int argc, char* argv[]) {
   // communication range - R (7, 1-19)
   // simulation time = 50000
 
-  double simulationTime = 20;  // 3600 * 1; //seconds
-
-  int numNodes = 50;
-  int numRuns = 1;
-  double max_y = 100;
-  double max_x = 100;
-  double min_speed = 0;
-  double max_speed = 2.78;
-  double min_pause = 0;
-  double max_pause = 100;
-  double seed = 3;
-
-  CommandLine cmd;
-  cmd.AddValue("simulationTime", "Simulation time", simulationTime);
-  cmd.AddValue("verbose", "Output transmission and reception timestamps", verbose);
-  cmd.Parse(argc, argv);
+  SimulationParameters params;
+  bool ok;
+  std::tie(params, ok) = SimulationParameters::parse(argc, argv);
 
   Time::SetResolution(Time::NS);
 
   // this will set a seed so that the same numbers are not generated each time.
   // the run number should be incremented each time this simulation is run to ensure streams do not
   // overlap
-  RngSeedManager::SetSeed(seed);
+  RngSeedManager::SetSeed(params.seed);
+  RngSeedManager::SetRun(params.runNumber);
 
   runWired();
   return 0;
 
-  for (int i = 0; i < numRuns; i++) {
-    RngSeedManager::SetRun(i);
+  // create node containers
+  NodeContainer nodes;
+  nodes.Create(params.totalNodes);
 
-    // start loop here for number of runs
+  // create mobility model
+  MobilityHelper mobility;
+  mobility.SetMobilityModel(
+      "ns3::RandomWaypointMobilityModel",
+      "Speed",
+      PointerValue(params.speed),
+      "Pause",
+      PointerValue(params.pause),
+      "PositionAllocator",
+      PointerValue(params.positionAllocator));
+  mobility.SetPositionAllocator(PointerValue(params.positionAllocator));
 
-    // create node containers
-    NodeContainer nodes;
-    nodes.Create(numNodes);
+  mobility.Install(nodes);
 
-    // create position allocator
-    Ptr<RandomRectanglePositionAllocator> positionAlloc =
-        CreateObject<RandomRectanglePositionAllocator>();
+  // create the wifi ad hoc network interfaces.
 
-    Ptr<RandomVariableStream> x = CreateObject<UniformRandomVariable>();
-    Ptr<RandomVariableStream> y = CreateObject<UniformRandomVariable>();
+  YansWifiPhyHelper wifiPhy = YansWifiPhyHelper::Default();
+  wifiPhy.SetPcapDataLinkType(YansWifiPhyHelper::DLT_IEEE802_11_RADIO);
 
-    x->SetAttribute("Min", DoubleValue(0.0));
-    x->SetAttribute("Max", DoubleValue(max_x));
+  // Rx and Tx gain should be 0, because apparenlty thats a rule for mobile devices from the FCC?
+  // maybe just a small num between 0 and 5?
+  // leaving the default rx sensitivity of -101dB
 
-    y->SetAttribute("Min", DoubleValue(0.0));
-    y->SetAttribute("Max", DoubleValue(max_y));
+  // for the physical propagation loss model consider using a chain of loss
+  // models to account for different properties
+  // ChannelConditionModel - dynamicly change model if there is LOS or not if using buildings
+  // friisPropagationLossModel - distance propagation?
+  // -- assumes free space not great choice
+  // COST hata model
+  // -- urban area - requires specifying the antenna locations
+  // log distance path loss
+  // -- suburban, probably this one
 
-    positionAlloc->SetX(x);
-    positionAlloc->SetY(y);
-    positionAlloc->SetZ(0.0);  // all of the nodes are at ground level, do I need to change this?
+  // delay propagation, constant speed, note this assumes the earth is flat, still use it
+  // the simulation areas are small enough that it should be fine.
 
-    Ptr<RandomVariableStream> speed = CreateObject<UniformRandomVariable>();
-    Ptr<RandomVariableStream> pause = CreateObject<UniformRandomVariable>();
+  YansWifiChannelHelper wifiChannel;
 
-    speed->SetAttribute("Min", DoubleValue(min_speed));
-    speed->SetAttribute("Max", DoubleValue(max_speed));
+  wifiChannel = YansWifiChannelHelper::Default();
+  wifiChannel.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
 
-    pause->SetAttribute("Min", DoubleValue(min_pause));
-    pause->SetAttribute("Max", DoubleValue(max_pause));
+  // I found a paper that measured values for the exponent and reference loss
+  // exponent = between < 2 and > 6, depending on environment, open hallway and crossing walls
+  // and floors respectively since this simulation is assuming a city/town setting we will select
+  // a value of n of 3 to account for mostly open outdoor space with some obsticles reference loss
+  // for the 2.4 GHz is around 41.7 dB apps.dtic.mil/dtic/tr/fulltext/u2/a25656s.pdf (page 19)
+  wifiChannel.AddPropagationLoss(
+      "ns3::LogDistancePropagationLossModel",
+      "Exponent",
+      DoubleValue(3),
+      "ReferenceDistance",
+      DoubleValue(1.0),
+      "ReferenceLoss",
+      DoubleValue(41.7));
+  wifiPhy.SetChannel(wifiChannel.Create());
 
-    // create mobility model
-    MobilityHelper mobility;
+  // set radio to ad hoc network mode? This seems to be needed
+  // this seems to be fine to leave this with all of its default parameters
+  WifiMacHelper wifiMac;
+  wifiMac.SetType("ns3::AdhocWifiMac");
 
-    mobility.SetMobilityModel(
-        "ns3::RandomWaypointMobilityModel",
-        "Speed",
-        PointerValue(speed),
-        "Pause",
-        PointerValue(pause),
-        "PositionAllocator",
-        PointerValue(positionAlloc));
-    mobility.SetPositionAllocator(PointerValue(positionAlloc));
+  WifiHelper wifi;
+  // 802.11b was selected as the physical channel because almost all consumer devices support it
+  // and it has lower power requirements and larger transmission ranges then other wifi standards
+  wifi.SetStandard(WIFI_STANDARD_80211b);
 
-    mobility.Install(nodes);
+  NetDeviceContainer devices = wifi.Install(wifiPhy, wifiMac, nodes);
 
-    // create the wifi ad hoc network interfaces.
+  InternetStackHelper internet;
 
-    YansWifiPhyHelper wifiPhy = YansWifiPhyHelper::Default();
-    wifiPhy.SetPcapDataLinkType(YansWifiPhyHelper::DLT_IEEE802_11_RADIO);
-
-    // Rx and Tx gain should be 0, because apparenlty thats a rule for mobile devices from the FCC?
-    // maybe just a small num between 0 and 5?
-    // leaving the default rx sensitivity of -101dB
-
-    // for the physical propogation loss model consider using a chain of loss
-    // models to account for different properties
-    // ChannelConditionModel - dynamicly change model if there is LOS or not if using buildings
-    // friisPropogationLossModel - distance propogation?
-    // -- assumes free space not great choice
-    // COST hata model
-    // -- urban area - requires specifying the antena locations
-    // log distance path loss
-    // -- subarban, probably this one
-
-    // delay propogation, constant speed, note this assumes the earth is flat, still use it
-    // the simulation areas are small enough that it should be fine.
-
-    YansWifiChannelHelper wifiChannel;
-
-    wifiChannel = YansWifiChannelHelper::Default();
-    wifiChannel.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
-
-    // I found a paper that measured values for the exponent and reference loss
-    // exponent = between < 2 and > 6, depending on envirionment, open hallway and crossing walls
-    // and floors respectivly since this simiulation is assuming a city/town setting we will select
-    // a value of n of 3 to account for mostly open outdoor space with some obsticles reference loss
-    // for the 2.4 GHz is arround 41.7 dB apps.dtic.mil/dtic/tr/fulltext/u2/a25656s.pdf (page 19)
-    wifiChannel.AddPropagationLoss(
-        "ns3::LogDistancePropagationLossModel",
-        "Exponent",
-        DoubleValue(3),
-        "ReferenceDistance",
-        DoubleValue(1.0),
-        "ReferenceLoss",
-        DoubleValue(41.7));
-    wifiPhy.SetChannel(wifiChannel.Create());
-
-    // set radio to ad hoc network mode? This seems to be needed
-    // this seems to be fine to leave this with all of its default parameters
-    WifiMacHelper wifiMac;
-    wifiMac.SetType("ns3::AdhocWifiMac");
-
-    WifiHelper wifi;
-    // 802.11b was selected as the physical channel because almost all consumer devices support it
-    // and it has lower power requirements and larger transmission ranges then other wifi standards
-    wifi.SetStandard(WIFI_STANDARD_80211b);
-
-    NetDeviceContainer devices = wifi.Install(wifiPhy, wifiMac, nodes);
-
-    InternetStackHelper internet;
+  if (params.routingProtocol == RoutingType::DSDV) {
+    NS_LOG_DEBUG("Using DSDV routing.");
+    DsdvHelper dsdv;
+    internet.SetRoutingHelper(dsdv);
+  } else if (params.routingProtocol == RoutingType::AODV) {
+    NS_LOG_DEBUG("Using AODV routing.");
     AodvHelper aodv;
     internet.SetRoutingHelper(aodv);
-    internet.Install(nodes);
-
-    Ipv4AddressHelper ipv4;
-    ipv4.SetBase("10.1.0.0", "255.255.0.0");  // support up to 65534 devices in network.
-    Ipv4InterfaceContainer interfaces = ipv4.Assign(devices);
-
-    // install the application onto the nodes here
-    SafApplicationHelper app(5000, nodes.GetN(), nodes.GetN());
-    // any extra paramters would be set here
-
-    ApplicationContainer apps = app.Install(nodes);
-
-    // pick a start and end time that makes sense, maybe wait a little for the network to get setup
-    // or something
-    apps.Start(Seconds(1));
-    apps.Stop(Seconds(simulationTime));
-
-    // UdpEchoServerHelper2 server (5000);
-    // apps = server.Install (nodes.Get(1));
-    // apps.Start (Seconds (1.0));
-    // apps.Stop (Seconds (20.0));
-
-    // actually run the simulation
-    // AnimationInterface anim( "animation-test.xml");
-    // anim.SetMobilityPollInterval(Seconds(1));
-
-    AsciiTraceHelper ascii;
-    wifiPhy.EnableAsciiAll(ascii.CreateFileStream("saf.tr"));
-    wifiPhy.EnablePcapAll("saf", false);
-
-    // actually run the simulation
-    Simulator::Stop(Seconds(simulationTime));
-    Simulator::Run();
-    Simulator::Destroy();
   }
-  // end runs loop here
+  internet.Install(nodes);
+
+  Ipv4AddressHelper ipv4;
+  ipv4.SetBase("10.1.0.0", "255.255.0.0");  // support up to 65534 devices in network.
+  Ipv4InterfaceContainer interfaces = ipv4.Assign(devices);
+
+  // install the application onto the nodes here
+  SafApplicationHelper app(5000, params.totalNodes, params.totalDataItems);
+  // any extra paramters would be set here
+
+  ApplicationContainer apps = app.Install(nodes);
+
+  // pick a start and end time that makes sense, maybe wait a little for the network to get setup
+  // or something
+  apps.Start(params.startupDelay);
+  apps.Stop(params.runtime);
+
+  // actually run the simulation
+  // AnimationInterface anim( "animation-test.xml");
+  // anim.SetMobilityPollInterval(Seconds(1));
+  AnimationInterface anim(params.netanimTraceFilePath);
+
+  AsciiTraceHelper ascii;
+  wifiPhy.EnableAsciiAll(ascii.CreateFileStream("saf.tr"));
+  wifiPhy.EnablePcapAll("saf", false);
+
+  // actually run the simulation
+  Simulator::Stop(params.runtime);
+  Simulator::Run();
+  Simulator::Destroy();
 
   return 0;
 }

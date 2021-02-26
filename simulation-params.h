@@ -27,32 +27,6 @@
 
 namespace saf {
 
-/*
-Simulation variables:
-- sim width
-- sim height
-- sim time
-- number of nodes
-- seed
-- simulation number
-- communication range
-
-mobility model:
- - max speed
- - min speed
- - min pause time
- - max pause time
-
-saf param:
-- request timeout time
-- data item size
-- relocation period
-- total data items
-- storage space
-- access frequency calcualation method (1,2,3)
-- standard deviation (default 0 case 3 = case 1)
-*/
-
 // TODO: Add parameters for neighborhood sizes, tau and sigma.
 
 /// \brief Encapsulates parsing parameters from the CommandLine.
@@ -69,50 +43,34 @@ class SimulationParameters {
   uint32_t runNumber;
   /// Simulation runtime.
   ns3::Time runtime;
-  /// Total nodes used in the simulation.
+  // number of seconds to wait until the application should begin, this time is taken out of the
+  // total run time
+  ns3::Time startupDelay;
+  // Total nodes used in the simulation.
   uint32_t totalNodes;
+  /// Total data items that get stored
+  uint16_t totalDataItems;
 
-  // Simulation area width
-  double areaWidth;
-  // Simulation area length
-  double areaLength;
+  // the position allocator for the mobility model
+  ns3::Ptr<ns3::RandomRectanglePositionAllocator> positionAllocator;
+
+  ns3::Time requestTimeout;
+  ns3::Time relocationPeriod;
+
+  ns3::Ptr<ns3::RandomVariableStream> speed;
+  ns3::Ptr<ns3::RandomVariableStream> pause;
 
   /// The path on disk to output the NetAnim trace XML file for visualizing the
   /// results of the simulation.
   std::string netanimTraceFilePath;
 
-  /// The velocity of the partition-bound nodes.
-  ns3::Ptr<ns3::UniformRandomVariable> pbnVelocity;
+  uint16_t replicaSpace;
+  uint32_t dataSize;
+  int accessFrequencyType;
+  double standardDeviation;
 
-  /// Time between profile updates.
-  ns3::Time profileUpdateDelay;
-  /// The number of hops defining the neighborhood of the node.
-  uint8_t neighborhoodSize;
-  /// The number of hops defining the neighborhood considered for a replicating
-  /// node election.
-  uint8_t electionNeighborhoodSize;
-  /// The simulation area.
-  SimulationArea area;
-  /// The number of horizontal partitions.
-  uint32_t rows;
-  /// The number of vertical partitions.
-  uint32_t cols;
-  /// The velocity of the travellers.
-  ns3::Ptr<ns3::ConstantRandomVariable> travellerVelocity;
-  /// The period after which traveller nodes should change their direction if
-  /// the travellerWalkMode is MODE_TIME.
-  ns3::Time travellerDirectionChangePeriod;
-  /// The distance after which traveller nodes should change their direction if
-  /// the travellerWalkMode is MODE_DISTANCE.
-  double travellerDirectionChangeDistance;
-  /// Governs the behaviour of the traveller nodes' walking.
-  ns3::RandomWalk2dMobilityModel::Mode travellerWalkMode;
-  /// The velocity of the partition-bound nodes.
-  ns3::Ptr<ns3::UniformRandomVariable> pbnVelocity;
-  /// The period after which partition-bound nodes change velocity.
-  ns3::Time pbnVelocityChangePeriod;
   /// Indicates the type of routing to use for the simulation.
-  rhpman::RoutingType routingProtocol;
+  saf::RoutingType routingProtocol;
   /// The radi`connectivity for each node.
   double wifiRadius;
 
