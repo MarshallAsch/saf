@@ -91,7 +91,7 @@ This project is formatted according to the `.clang-format` file included in this
 
 ## Special Thanks
 
-I would like to acknowledge the amazing work that was done by Keefer Rourke (@keeferrourke)
+I would like to acknowledge the amazing work that was done by Keefer Rourke ([@keeferrourke])
 on the initial [RHPMAN] project that I used as a base for this implementation.
 
 
@@ -99,3 +99,4 @@ on the initial [RHPMAN] project that I used as a base for this implementation.
 
 [1]: https://danielgillis.wordpress.com/students/
 [RHPMAN]: https://github.com/keeferrourke/rhpman-sim
+[@keeferrourke]: https://github.com/keeferrourke
