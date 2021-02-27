@@ -85,9 +85,17 @@ This will generate an XML file at the specified path. You can then open this
 file with `NetAnim` to view what happens during the simulation run.
 
 
+## Code style
 
+This project is formatted according to the `.clang-format` file included in this repository. It intentionally deviates from the code style used by the ns-3 library and simulator developers.
+
+## Special Thanks
+
+I would like to acknowledge the amazing work that was done by Keefer Rourke (@keeferrourke)
+on the initial [RHPMAN] project that I used as a base for this implementation.
 
 
 <!-- links -->
 
 [1]: https://danielgillis.wordpress.com/students/
+[RHPMAN]: https://github.com/keeferrourke/rhpman-sim
