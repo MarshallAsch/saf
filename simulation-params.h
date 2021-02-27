@@ -66,7 +66,7 @@ class SimulationParameters {
 
   uint16_t replicaSpace;
   uint32_t dataSize;
-  int accessFrequencyType;
+  uint16_t accessFrequencyType;
   double standardDeviation;
 
   /// Indicates the type of routing to use for the simulation.

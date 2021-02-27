@@ -27,7 +27,7 @@
 
 #include "saf-application.h"
 
-namespace ns3 {
+namespace saf {
 
 /**
  * \ingroup udpecho
@@ -42,7 +42,7 @@ class SafApplicationHelper {
    *
    * \param port The port the server will wait on for incoming packets
    */
-  SafApplicationHelper(uint16_t port, uint16_t numNodes, uint16_t numDataitems);
+  SafApplicationHelper(uint16_t port, uint32_t numNodes, uint16_t numDataitems);
 
   /**
    * Record an attribute to be set in each Application after it is is created.
@@ -98,6 +98,6 @@ class SafApplicationHelper {
   ObjectFactory m_factory;  //!< Object factory.
 };
 
-}  // namespace ns3
+}  // namespace saf
 
 #endif /* UDP_ECHO_HELPER_H */

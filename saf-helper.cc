@@ -25,7 +25,7 @@ namespace ns3 {
 
 SafApplicationHelper::SafApplicationHelper(
     uint16_t port,
-    uint16_t numNodes,
+    uint32_t numNodes,
     uint16_t numDataitems) {
   NS_ASSERT_MSG(
       numDataitems % numNodes == 0,

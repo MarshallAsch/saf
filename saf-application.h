@@ -130,17 +130,22 @@ class SafApplication : public Application {
   // uint16_t* m_access_frequencies; // since the access frequencies are static and known for all
   // data items
   uint16_t m_total_data_items;
-  uint16_t m_total_num_nodes;
+  uint32_t m_total_num_nodes;
 
   uint16_t m_origianal_space;  // the number of data items that can be stored by the node
   uint16_t m_replica_space;    // the number of data items that can be stored by the node
 
-  uint16_t m_request_timeout;
-  uint16_t m_reallocation_period;
+  uint16_t m_access_frequency_type;
+  double m_standard_deviation;
+
+  ns3::Time m_request_timeout;
+  ns3::Time m_reallocation_period;
 
   bool m_running;
 
   std::vector<Ptr<ExponentialRandomVariable> > m_data_lookup_generator;
+
+  double CalculateAccessFrequency(uint16_t dataID);
 
   Data GetDataItem(uint16_t dataID);
 

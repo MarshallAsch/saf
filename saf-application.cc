@@ -30,7 +30,8 @@
 #include "ns3/trace-source-accessor.h"
 #include "ns3/uinteger.h"
 
-#include <algorithm>  // std::sort
+#include <math.h>    // std::pow
+#include <algorith>  // std::sort
 
 #include "message.h"
 
@@ -62,9 +63,9 @@ TypeId SafApplication::GetTypeId(void) {
           .AddAttribute(
               "RequestTimeout",
               "The number of seconds util a lookup request times out.",
-              UintegerValue(10),
-              MakeUintegerAccessor(&SafApplication::m_request_timeout),
-              MakeUintegerChecker<uint16_t>())
+              TimeValue(10_sec),
+              MakeTimeAccessor(&SafApplication::m_request_timeout),
+              MakeTimeChecker(0.1_sec))
           .AddAttribute(
               "DataSize",
               "The number of bytes in each data object.",
@@ -74,9 +75,9 @@ TypeId SafApplication::GetTypeId(void) {
           .AddAttribute(
               "ReallocationPeriod",
               "The number of seconds between reallocation events.",
-              UintegerValue(256),
-              MakeUintegerAccessor(&SafApplication::m_reallocation_period),
-              MakeUintegerChecker<uint16_t>())
+              TimeValue(256_sec),
+              MakeTimeAccessor(&SafApplication::m_reallocation_period),
+              MakeTimeChecker(0.1_sec))
           .AddAttribute(
               "TotalDataItems",
               "The total number of data items in the simulation.",
@@ -88,19 +89,25 @@ TypeId SafApplication::GetTypeId(void) {
               "The total number of nodes in the simulation, used to calculate data items per node.",
               UintegerValue(0),
               MakeUintegerAccessor(&SafApplication::m_total_num_nodes),
-              MakeUintegerChecker<uint16_t>())
-          .AddAttribute(
-              "Timeout",
-              "The total number of seconds to wait until lookup requests timeout.",
-              UintegerValue(10),
-              MakeUintegerAccessor(&SafApplication::m_request_timeout),
-              MakeUintegerChecker<uint16_t>())
+              MakeUintegerChecker<uint32_t>())
           .AddAttribute(
               "StorageSpace",
               "The number of data items the node can hold",
               UintegerValue(10),
               MakeUintegerAccessor(&SafApplication::m_replica_space),
               MakeUintegerChecker<uint16_t>())
+          .AddAttribute(
+              "accessFrequencyMode",
+              "The access frequency type, 1, 2, or 3",
+              UintegerValue(10),
+              MakeUintegerAccessor(&SafApplication::m_access_frequency_type),
+              MakeUintegerChecker<uint16_t>())
+          .AddAttribute(
+              "standardDeviation",
+              "the standard deviation for the access frequency calculation",
+              DoubleValue(0.0),
+              MakeDoubleAccessor(&SafApplication::m_standard_deviation),
+              MakeDoubleChecker())
           .AddTraceSource(
               "Tx",
               "A new packet is created and is sent",
@@ -198,8 +205,9 @@ void SafApplication::StartApplication(void) {
   GenerateDataItems();
 
   for (uint16_t i = 1; i <= m_total_data_items; i++) {
-    double accessFrequency = 0.5;
-    double lookupDelay = m_reallocation_period - (m_reallocation_period * accessFrequency);
+    double accessFrequency = CalculateAccessFrequency(i);
+    double lookupDelay =
+        m_reallocation_period.GetSeconds() - (m_reallocation_period.GetSeconds() * accessFrequency);
 
     Ptr<ExponentialRandomVariable> e = CreateObject<ExponentialRandomVariable>();
     e->SetAttribute("Mean", DoubleValue(lookupDelay));
@@ -213,7 +221,7 @@ void SafApplication::StartApplication(void) {
 
   // schedule first reallocation event
   m_reallocation_event =
-      Simulator::Schedule(Seconds(m_reallocation_period), &SafApplication::RunReplication, this);
+      Simulator::Schedule(m_reallocation_period, &SafApplication::RunReplication, this);
 
   // schedule data lookups
   ScheduleFirstLookups();
@@ -242,6 +250,23 @@ void SafApplication::StopApplication() {
   }
 
   Simulator::Cancel(m_reallocation_event);
+}
+
+double SafApplication::CalculateAccessFrequency(uint16_t dataID) {
+  if (m_access_frequency_type == 1) {
+    return 0.5 * (1.0 + 0.01 * dataID);
+  } else if (m_access_frequency_type == 2) {
+    return 0.025 * dataID;
+  } else if (m_access_frequency_type == 3) {
+    Ptr<NormalRandomVariable> x = CreateObject<NormalRandomVariable>();
+    x->SetAttribute("Mean", DoubleValue(0.5 * (1.0 + 0.01 * dataID)));
+    x->SetAttribute("Variance", DoubleValue(pow(m_standard_deviation, 2.0)));
+
+    return x->GetValue();
+  } else {
+    NS_LOG_ERROR("this is bad, the access frequency mode must be 1, 2, or 3");
+    return 0;
+  }
 }
 
 void SafApplication::ScheduleFirstLookups() {
@@ -461,8 +486,8 @@ void SafApplication::AskPeers(uint16_t dataID) {
   m_pending_lookups.insert(dataID);  // add to pending list
   NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s sent request for " << dataID);
 
-  if (Simulator::Now() + Seconds(m_request_timeout) < m_stopTime) {
-    Simulator::Schedule(Seconds(m_request_timeout), &SafApplication::LookupTimeout, this, dataID);
+  if (Simulator::Now() + m_request_timeout < m_stopTime) {
+    Simulator::Schedule(m_request_timeout, &SafApplication::LookupTimeout, this, dataID);
   }
 }
 
@@ -513,7 +538,7 @@ void SafApplication::RunReplication() {
 
   // schedule next reallocation event
   m_reallocation_event =
-      Simulator::Schedule(Seconds(m_reallocation_period), &SafApplication::RunReplication, this);
+      Simulator::Schedule(m_reallocation_period, &SafApplication::RunReplication, this);
 }
 
 // compariator for sorting access frequencies sorts highest to lowest

@@ -61,7 +61,7 @@ std::pair<SimulationParameters, bool> SimulationParameters::parse(int argc, char
   uint16_t optTotalDataItems = 40;           // constant
   uint16_t optReplicaSpace = 10;             // variable C
 
-  int optDataFrequencyType = 1;       // option 1, 2 or 3
+  uint16_t optDataFrequencyType = 1;  // option 1, 2 or 3
   double optStandardDeviation = 0.0;  // makes case 3 == case1, only for case 3
 
   // Link and network parameters.
@@ -137,7 +137,7 @@ std::pair<SimulationParameters, bool> SimulationParameters::parse(int argc, char
     NS_LOG_ERROR("simulation run time (" << optRuntime << ") is cannot be negative");
     return std::pair<SimulationParameters, bool>(result, false);
   }
-  if (optDataFrequencyType < 0 || optDataFrequencyType > 3) {
+  if (optDataFrequencyType > 3) {
     NS_LOG_ERROR(
         "Access frequency type (" << optDataFrequencyType
                                   << ") is not a valid, must be one of [1,2,3]");
