@@ -35,6 +35,7 @@
 
 #include "message.h"
 
+#include "nsutil.h"
 /*
 
  This is a modified version that is the beginnings of experimenting to implement
@@ -108,7 +109,7 @@ TypeId SafApplication::GetTypeId(void) {
               "the standard deviation for the access frequency calculation",
               DoubleValue(0.0),
               MakeDoubleAccessor(&SafApplication::m_standard_deviation),
-              MakeDoubleChecker())
+              MakeDoubleChecker<double>())
           .AddTraceSource(
               "Tx",
               "A new packet is created and is sent",
@@ -156,7 +157,6 @@ SafApplication::~SafApplication() {
   m_replica_space = 0;
   m_size = 0;
   m_dataSize = 0;
-  m_request_timeout = 0;
 }
 
 void SafApplication::DoDispose(void) {

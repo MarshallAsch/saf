@@ -61,6 +61,7 @@
 #include "saf-helper.h"
 #include "simulation-params.h"
 #include "util.h"
+#include "nsutil.h"
 
 using namespace ns3;
 using namespace saf;
