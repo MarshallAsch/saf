@@ -22,6 +22,7 @@
 #include "ns3/random-variable-stream.h"
 #include "ns3/random-walk-2d-mobility-model.h"
 
+#include "logging.h"
 #include "simulation-params.h"
 #include "util.h"
 
@@ -32,8 +33,8 @@ using namespace ns3;
 std::pair<SimulationParameters, bool> SimulationParameters::parse(int argc, char* argv[]) {
   /* Default simulation values. */
   // Simulation run time.
-  double optRuntime = 50000_seconds;  // 40.0_minutes;
-  double optStartupDelay = 1_seconds;
+  double optRuntime = 50000.0_seconds;  // 40.0_minutes;
+  double optStartupDelay = 1.0_seconds;
   // Simulation seed.
   uint32_t optSeed = 1;
 
@@ -59,7 +60,7 @@ std::pair<SimulationParameters, bool> SimulationParameters::parse(int argc, char
 
   double optRequestTimeout = 10.0_seconds;   // not described
   uint32_t optDataSize = 256;                // not described
-  double optRelocationPeriod = 256_seconds;  // variable T
+  double optRelocationPeriod = 256.0_seconds;  // variable T
   uint16_t optTotalDataItems = 40;           // constant
   uint16_t optReplicaSpace = 10;             // variable C
 
@@ -207,7 +208,7 @@ std::pair<SimulationParameters, bool> SimulationParameters::parse(int argc, char
   }
 
   result.seed = optSeed;
-  result.simulationNumber = optRunNum;
+  result.runNumber = optRunNum;
   result.runtime = Seconds(optRuntime);
 
   // create position allocator

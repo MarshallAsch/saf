@@ -24,6 +24,10 @@
 #include "ns3/nstime.h"
 #include "ns3/random-variable-stream.h"
 #include "ns3/random-walk-2d-mobility-model.h"
+#include "ns3/position-allocator.h"
+
+#include "nsutil.h"
+
 
 namespace saf {
 

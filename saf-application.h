@@ -26,6 +26,7 @@
 #include "ns3/ptr.h"
 #include "ns3/random-variable-stream.h"
 #include "ns3/traced-callback.h"
+#include "ns3/socket.h"
 
 #include <set>     // std::set
 #include <vector>  // std::vector

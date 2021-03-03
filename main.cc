@@ -62,13 +62,14 @@
 #include "simulation-params.h"
 #include "util.h"
 #include "nsutil.h"
+#include "logging.h"
 
 using namespace ns3;
 using namespace saf;
 
 bool verbose = true;
 
-NS_LOG_COMPONENT_DEFINE("SAF runner");
+//NS_LOG_COMPONENT_DEFINE("SAF runner");
 
 void runWired() {
   Address serverAddress;

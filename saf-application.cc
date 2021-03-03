@@ -21,7 +21,7 @@
 #include "ns3/inet6-socket-address.h"
 #include "ns3/ipv4-address.h"
 #include "ns3/ipv6-address.h"
-#include "ns3/log.h"
+//#include "ns3/log.h"
 #include "ns3/nstime.h"
 #include "ns3/packet.h"
 #include "ns3/simulator.h"
@@ -34,7 +34,7 @@
 #include <algorithm>  // std::sort
 
 #include "message.h"
-
+#include "logging.h"
 #include "nsutil.h"
 /*
 
@@ -44,7 +44,7 @@
 namespace saf {
 using namespace ns3;
 
-NS_LOG_COMPONENT_DEFINE("SafApplication");
+//NS_LOG_COMPONENT_DEFINE("SafApplication");
 
 NS_OBJECT_ENSURE_REGISTERED(SafApplication);
 
