@@ -34,7 +34,7 @@ namespace saf {
 using namespace ns3;
 
 //class Socket;
-class Packet;
+//class Packet;
 
 /**
  * \ingroup udpecho
