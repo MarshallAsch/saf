@@ -65,7 +65,7 @@ TypeId SafApplication::GetTypeId(void) {
           .AddAttribute(
               "RequestTimeout",
               "The number of seconds util a lookup request times out.",
-              TimeValue(10_sec),
+              TimeValue(10.0_sec),
               MakeTimeAccessor(&SafApplication::m_request_timeout),
               MakeTimeChecker(0.1_sec))
           .AddAttribute(
@@ -77,7 +77,7 @@ TypeId SafApplication::GetTypeId(void) {
           .AddAttribute(
               "ReallocationPeriod",
               "The number of seconds between reallocation events.",
-              TimeValue(256_sec),
+              TimeValue(256.0_sec),
               MakeTimeAccessor(&SafApplication::m_reallocation_period),
               MakeTimeChecker(0.1_sec))
           .AddAttribute(

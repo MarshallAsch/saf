@@ -33,7 +33,7 @@
 namespace saf {
 using namespace ns3;
 
-class Socket;
+//class Socket;
 class Packet;
 
 /**
