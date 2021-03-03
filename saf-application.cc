@@ -31,7 +31,7 @@
 #include "ns3/uinteger.h"
 
 #include <math.h>    // std::pow
-#include <algorith>  // std::sort
+#include <algorithm>  // std::sort
 
 #include "message.h"
 
