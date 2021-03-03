@@ -26,6 +26,8 @@
 #include "util.h"
 
 namespace saf {
+using namespace ns3;
+
 // static
 std::pair<SimulationParameters, bool> SimulationParameters::parse(int argc, char* argv[]) {
   /* Default simulation values. */

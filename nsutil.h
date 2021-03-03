@@ -31,7 +31,6 @@
 #include "ns3/random-walk-2d-mobility-model.h"
 
 namespace saf {
-
 using namespace ns3;
 
 /// \brief User defined literal for time values in seconds.

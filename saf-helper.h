@@ -28,6 +28,7 @@
 #include "saf-application.h"
 
 namespace saf {
+using namespace ns3;
 
 /**
  * \ingroup udpecho

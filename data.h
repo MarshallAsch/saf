@@ -7,7 +7,8 @@
 #include <string.h>
 #include "ns3/uinteger.h"
 
-namespace ns3 {
+namespace saf {
+using namespace ns3;
 
 enum class DataStatus { unknown, free, stored, pending };
 
@@ -38,6 +39,6 @@ class Data {
   DataStatus GetStatus();
 };
 
-}  // namespace ns3
+}  // namespace saf
 
 #endif /*  SAF_DATA_H */

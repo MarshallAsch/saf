@@ -30,7 +30,8 @@
 #include <set>     // std::set
 #include <vector>  // std::vector
 
-namespace ns3 {
+namespace saf {
+using namespace ns3;
 
 class Socket;
 class Packet;
@@ -170,6 +171,6 @@ class SafApplication : public Application {
   TracedCallback<Ptr<const Packet>, const Address&, const Address&> m_rxTraceWithAddresses;
 };
 
-}  // namespace ns3
+}  // namespace saf
 
 #endif /*  SAF_APPLICATION_H */

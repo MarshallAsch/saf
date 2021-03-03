@@ -21,7 +21,8 @@
 #include "ns3/names.h"
 #include "ns3/uinteger.h"
 
-namespace ns3 {
+namespace saf {
+using namespace ns3;
 
 SafApplicationHelper::SafApplicationHelper(
     uint16_t port,
@@ -69,4 +70,4 @@ Ptr<Application> SafApplicationHelper::InstallPriv(Ptr<Node> node) const {
   return app;
 }
 
-}  // namespace ns3
+}  // namespace saf

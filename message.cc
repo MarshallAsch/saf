@@ -28,7 +28,8 @@
  *
  */
 
-namespace ns3 {
+namespace saf {
+using namespace ns3;
 
 Message::Message() {
   static uint32_t id = 1;
@@ -86,4 +87,4 @@ std::vector<uint8_t> ResponseMessage::GeneratePayload() {
   return payload;
 }
 
-}  // Namespace ns3
+}  // Namespace saf

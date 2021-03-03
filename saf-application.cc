@@ -40,7 +40,8 @@
  This is a modified version that is the beginnings of experimenting to implement
  SAF
  */
-namespace ns3 {
+namespace saf {
+using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("SafApplication");
 
@@ -546,4 +547,4 @@ bool AccessFrequencyComparator(std::vector<uint16_t> i, std::vector<uint16_t> j)
   return i[1] > j[1];
 }
 
-}  // Namespace ns3
+}  // Namespace saf

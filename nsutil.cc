@@ -23,7 +23,6 @@
 #include "nsutil.h"
 
 namespace saf {
-
 using namespace ns3;
 
 // User defined literal for time values in seconds.

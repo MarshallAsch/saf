@@ -13,7 +13,8 @@
 
 #include "data.h"
 
-namespace ns3 {
+namespace saf {
+using namespace ns3;
 
 enum class MessageType : uint8_t { unknown = 0x00, lookup = 0x01, dataResponse = 0x02 };
 
@@ -54,6 +55,6 @@ class ResponseMessage : public Message {
   ResponseMessage(uint32_t requestID, Data data);
 };
 
-}  // namespace ns3
+}  // namespace saf
 
 #endif /*  SAF_DATA_H */
