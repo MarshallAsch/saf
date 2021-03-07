@@ -58,11 +58,11 @@ std::pair<SimulationParameters, bool> SimulationParameters::parse(int argc, char
 
   double optWifiRadius = 7.0_meters;  // variable R
 
-  double optRequestTimeout = 10.0_seconds;   // not described
-  uint32_t optDataSize = 256;                // not described
+  double optRequestTimeout = 10.0_seconds;     // not described
+  uint32_t optDataSize = 256;                  // not described
   double optRelocationPeriod = 256.0_seconds;  // variable T
-  uint16_t optTotalDataItems = 40;           // constant
-  uint16_t optReplicaSpace = 10;             // variable C
+  uint16_t optTotalDataItems = 40;             // constant
+  uint16_t optReplicaSpace = 10;               // variable C
 
   uint16_t optDataFrequencyType = 1;  // option 1, 2 or 3
   double optStandardDeviation = 0.0;  // makes case 3 == case1, only for case 3

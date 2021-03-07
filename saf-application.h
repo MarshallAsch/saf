@@ -25,8 +25,8 @@
 #include "ns3/ipv4-address.h"
 #include "ns3/ptr.h"
 #include "ns3/random-variable-stream.h"
-#include "ns3/traced-callback.h"
 #include "ns3/socket.h"
+#include "ns3/traced-callback.h"
 
 #include <set>     // std::set
 #include <vector>  // std::vector
@@ -34,8 +34,8 @@
 namespace saf {
 using namespace ns3;
 
-//class Socket;
-//class Packet;
+// class Socket;
+// class Packet;
 
 /**
  * \ingroup udpecho

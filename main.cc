@@ -58,18 +58,18 @@
 #include "ns3/yans-wifi-channel.h"
 #include "ns3/yans-wifi-helper.h"
 
+#include "logging.h"
+#include "nsutil.h"
 #include "saf-helper.h"
 #include "simulation-params.h"
 #include "util.h"
-#include "nsutil.h"
-#include "logging.h"
 
 using namespace ns3;
 using namespace saf;
 
 bool verbose = true;
 
-//NS_LOG_COMPONENT_DEFINE("SAF runner");
+// NS_LOG_COMPONENT_DEFINE("SAF runner");
 
 void runWired() {
   Address serverAddress;

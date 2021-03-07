@@ -30,11 +30,11 @@
 #include "ns3/trace-source-accessor.h"
 #include "ns3/uinteger.h"
 
-#include <math.h>    // std::pow
+#include <math.h>     // std::pow
 #include <algorithm>  // std::sort
 
-#include "message.h"
 #include "logging.h"
+#include "message.h"
 #include "nsutil.h"
 /*
 
@@ -44,7 +44,7 @@
 namespace saf {
 using namespace ns3;
 
-//NS_LOG_COMPONENT_DEFINE("SafApplication");
+// NS_LOG_COMPONENT_DEFINE("SafApplication");
 
 NS_OBJECT_ENSURE_REGISTERED(SafApplication);
 
@@ -391,6 +391,10 @@ void SafApplication::HandleResponse(Ptr<Socket> socket) {
       std::set<uint16_t>::iterator it = m_pending_lookups.find(dataID);
       if (dataID == *it) {
         m_pending_lookups.erase(it);
+
+        // log successful request
+      } else {
+        // log successful request, already gotten or late
       }
 
       NS_LOG_LOGIC("TODO: Mark cache miss, mark lookup success, remove from pending reponse list");
@@ -417,6 +421,7 @@ void SafApplication::LookupData(uint16_t dataID) {
     // mark cache hit, mark successfull lookup
   } else {
     // send broadcast asking for the data item
+    NS_LOG_LOGIC("TODO: Mark cache miss, mark asking peers");
     AskPeers(dataID);
   }
 }
@@ -496,7 +501,6 @@ void SafApplication::LookupTimeout(uint16_t dataID) {
   NS_LOG_FUNCTION(this);
 
   // check to see if it is still in the pending lookup list
-
   std::set<uint16_t>::iterator item = m_pending_lookups.find(dataID);
 
   if (dataID == *item) {
