@@ -111,11 +111,11 @@ TypeId SafApplication::GetTypeId(void) {
               MakeDoubleAccessor(&SafApplication::m_standard_deviation),
               MakeDoubleChecker<double>())
           .AddAttribute(
-            "StatsCollector",
-            "statistics for stats things",
-            PointerValue(CreateObject<DataCollector>()),
-            MakePointerAccessor(&SafApplication::m_statistics_collector),
-            MakePointerChecker<DataCollector>())
+              "StatsCollector",
+              "statistics for stats things",
+              PointerValue(CreateObject<DataCollector>()),
+              MakePointerAccessor(&SafApplication::m_statistics_collector),
+              MakePointerChecker<DataCollector>())
           .AddTraceSource(
               "Tx",
               "A new packet is created and is sent",
@@ -353,15 +353,15 @@ void SafApplication::HandleRequest(Ptr<Socket> socket) {
       memcpy(&sentAt, &payload[14], sizeof(sentAt));
       memcpy(&dataID, &payload[30], sizeof(dataID));
 
-     // std::cout << "-----------------------\n";
-     // std::cout << "sent at: " << sentAt << "\n";
-     // std::cout << "req dataID: " << dataID << "\n";
+      // std::cout << "-----------------------\n";
+      // std::cout << "sent at: " << sentAt << "\n";
+      // std::cout << "req dataID: " << dataID << "\n";
 
-     // std::cout << "receive: ";
-     // for (uint32_t i = 30 ; i < 32; i++) {
-     //   std::cout << unsigned(payload[i]) << " ";
-     // }
-     // std::cout << "\n";
+      // std::cout << "receive: ";
+      // for (uint32_t i = 30 ; i < 32; i++) {
+      //   std::cout << unsigned(payload[i]) << " ";
+      // }
+      // std::cout << "\n";
 
       Data item = GetDataItem(dataID);
       if (item.GetStatus() != DataStatus::stored) {

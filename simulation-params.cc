@@ -81,7 +81,10 @@ std::pair<SimulationParameters, bool> SimulationParameters::parse(int argc, char
   cmd.AddValue("start-delay", "Number of seconds before the application starts", optStartupDelay);
   cmd.AddValue("seed", "Simulation seed", optSeed);
   cmd.AddValue("run", "Simulation run", optRunNum);
-  cmd.AddNonOption("dry-run", "Don't actually run the simulation, just print the parameters", optDryRun);
+  cmd.AddNonOption(
+      "dry-run",
+      "Don't actually run the simulation, just print the parameters",
+      optDryRun);
   cmd.AddValue("total-nodes", "Total number of nodes in the simulation", optTotalNodes);
   cmd.AddValue("area-width", "Width of the simulation area in meters", optAreaWidth);
   cmd.AddValue("area-length", "Length of the simulation area in meters", optAreaLength);

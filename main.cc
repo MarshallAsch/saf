@@ -39,17 +39,17 @@
  * parts of the simulation.
  */
 
+#include "ns3/application-container.h"
 #include "ns3/applications-module.h"
+#include "ns3/attribute.h"
 #include "ns3/core-module.h"
 #include "ns3/csma-module.h"
 #include "ns3/internet-module.h"
 #include "ns3/network-module.h"
-#include "ns3/sqlite-data-output.h"
-#include "ns3/omnet-data-output.h"
-#include "ns3/application-container.h"
-#include "ns3/attribute.h"
 #include "ns3/node-container.h"
 #include "ns3/object-factory.h"
+#include "ns3/omnet-data-output.h"
+#include "ns3/sqlite-data-output.h"
 
 #include "ns3/mobility-module.h"
 #include "ns3/netanim-module.h"
@@ -99,8 +99,8 @@ void runWired() {
   Ipv4InterfaceContainer i = ipv4.Assign(d);
   serverAddress = Address(i.GetAddress(1));
 
-  //setup the stats collector
-  DataCollector data; // = CreateObject<DataCollector>();
+  // setup the stats collector
+  DataCollector data;  // = CreateObject<DataCollector>();
   data.DescribeRun("this is a test experiment", "saf wired", "", "1");
   data.AddMetadata("Author", "Marshall Asch");
   data.AddMetadata("Date", "March 18, 2021");
@@ -122,7 +122,6 @@ void runWired() {
   // something
   apps.Start(Seconds(1));
   apps.Stop(Seconds(20));
-
 
   AsciiTraceHelper ascii;
   csma.EnableAsciiAll(ascii.CreateFileStream("usaf-wire.tr"));

@@ -55,7 +55,7 @@ class SafApplicationHelper {
 
   /**
    * Create a UdpEchoServerApplication on the specified Node.
-  *
+   *
    * \param node The node on which to create the Application.  The node is
    *             specified by a Ptr<Node>.
    *
