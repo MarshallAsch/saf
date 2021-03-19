@@ -27,6 +27,9 @@
 #include "ns3/random-variable-stream.h"
 #include "ns3/socket.h"
 #include "ns3/traced-callback.h"
+#include "ns3/data-collector.h"
+#include "ns3/basic-data-calculators.h"
+#include "ns3/time-data-calculators.h"
 
 #include <set>     // std::set
 #include <vector>  // std::vector
@@ -142,6 +145,15 @@ class SafApplication : public Application {
 
   ns3::Time m_request_timeout;
   ns3::Time m_reallocation_period;
+
+  ns3::Ptr<ns3::DataCollector> m_statistics_collector;
+  ns3::Ptr<ns3::CounterCalculator<> > m_cache_hits;
+  ns3::Ptr<ns3::CounterCalculator<> > m_requests_sent;
+  ns3::Ptr<ns3::CounterCalculator<> > m_responses_sent;
+  ns3::Ptr<ns3::CounterCalculator<> > m_num_timeouts;
+  ns3::Ptr<ns3::TimeMinMaxAvgTotalCalculator> m_success_timings;
+  ns3::Ptr<ns3::TimeMinMaxAvgTotalCalculator> m_response_timings;
+
 
   bool m_running;
 

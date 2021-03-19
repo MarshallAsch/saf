@@ -44,7 +44,8 @@
 #include "ns3/csma-module.h"
 #include "ns3/internet-module.h"
 #include "ns3/network-module.h"
-
+#include "ns3/sqlite-data-output.h"
+#include "ns3/omnet-data-output.h"
 #include "ns3/application-container.h"
 #include "ns3/attribute.h"
 #include "ns3/node-container.h"
@@ -74,9 +75,7 @@ bool verbose = true;
 void runWired() {
   Address serverAddress;
 
-  //
   // Explicitly create the nodes required by the topology (shown above).
-  //
   NS_LOG_INFO("Create nodes.");
   NodeContainer n;
   n.Create(4);
@@ -85,18 +84,14 @@ void runWired() {
   internet.Install(n);
 
   NS_LOG_INFO("Create channels.");
-  //
   // Explicitly create the channels required by the topology (shown above).
-  //
   CsmaHelper csma;
   csma.SetChannelAttribute("DataRate", DataRateValue(DataRate(5000000)));
   csma.SetChannelAttribute("Delay", TimeValue(MilliSeconds(2)));
   csma.SetDeviceAttribute("Mtu", UintegerValue(1400));
   NetDeviceContainer d = csma.Install(n);
 
-  //
   // We've got the "hardware" in place.  Now we need to add IP addresses.
-  //
   NS_LOG_INFO("Assign IP Addresses.");
 
   Ipv4AddressHelper ipv4;
@@ -104,10 +99,21 @@ void runWired() {
   Ipv4InterfaceContainer i = ipv4.Assign(d);
   serverAddress = Address(i.GetAddress(1));
 
+  //setup the stats collector
+  DataCollector data; // = CreateObject<DataCollector>();
+  data.DescribeRun("this is a test experiment", "saf wired", "", "1");
+  data.AddMetadata("Author", "Marshall Asch");
+  data.AddMetadata("Date", "March 18, 2021");
+
+  // format stats collection in sqlite
+  Ptr<DataOutputInterface> output = CreateObject<OmnetDataOutput>();
+
   NS_LOG_INFO("Create Applications.");
   // install the application onto the nodes here
   SafApplicationHelper app(5000, n.GetN(), n.GetN());
-  app.SetAttribute("ReallocationPeriod", UintegerValue(5));
+  app.SetAttribute("ReallocationPeriod", TimeValue(5.0_sec));
+  Ptr<DataCollector> collectorPtr = data.GetObject<DataCollector>();
+  app.SetAttribute("StatsCollector", PointerValue(collectorPtr));
   // any extra paramters would be set here
 
   ApplicationContainer apps = app.Install(n);
@@ -117,20 +123,16 @@ void runWired() {
   apps.Start(Seconds(1));
   apps.Stop(Seconds(20));
 
-  // UdpEchoServerHelper2 server (5000);
-  // apps = server.Install (n.Get(1));
-  // apps.Start (Seconds (1.0));
-  // apps.Stop (Seconds (20.0));
 
   AsciiTraceHelper ascii;
   csma.EnableAsciiAll(ascii.CreateFileStream("usaf-wire.tr"));
   csma.EnablePcapAll("saf-wire", false);
 
-  //
   // Now, do the actual simulation.
-  //
   NS_LOG_INFO("Run Simulation.");
   Simulator::Run();
+
+  output->Output(data);
   Simulator::Destroy();
   NS_LOG_INFO("Done.");
 }

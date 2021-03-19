@@ -77,6 +77,8 @@ class SimulationParameters {
   /// The radi`connectivity for each node.
   double wifiRadius;
 
+  bool dryRun;
+
   SimulationParameters() {}
 
   /// \brief Parses command line options to set simulation parameters.

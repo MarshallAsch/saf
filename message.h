@@ -27,6 +27,7 @@ class Message {
   uint32_t m_request_id;
   uint32_t m_response_id;
   int64_t m_requested_at;
+  int64_t m_sent_at;
   MessageType m_type;
 
  public:
@@ -52,7 +53,7 @@ class ResponseMessage : public Message {
   std::vector<uint8_t> GeneratePayload();
 
  public:
-  ResponseMessage(uint32_t requestID, Data data);
+  ResponseMessage(uint32_t requestID, uint64_t requestedAt, Data data);
 };
 
 }  // namespace saf

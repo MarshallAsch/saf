@@ -73,12 +73,15 @@ std::pair<SimulationParameters, bool> SimulationParameters::parse(int argc, char
   // Animation parameters.
   std::string animationTraceFilePath = "saf.xml";
 
+  bool optDryRun = false;
+
   /* Setup commandline option for each simulation parameter. */
   CommandLine cmd;
   cmd.AddValue("run-time", "Simulation run time in seconds", optRuntime);
   cmd.AddValue("start-delay", "Number of seconds before the application starts", optStartupDelay);
   cmd.AddValue("seed", "Simulation seed", optSeed);
   cmd.AddValue("run", "Simulation run", optRunNum);
+  cmd.AddNonOption("dry-run", "Don't actually run the simulation, just print the parameters", optDryRun);
   cmd.AddValue("total-nodes", "Total number of nodes in the simulation", optTotalNodes);
   cmd.AddValue("area-width", "Width of the simulation area in meters", optAreaWidth);
   cmd.AddValue("area-length", "Length of the simulation area in meters", optAreaLength);
@@ -210,6 +213,7 @@ std::pair<SimulationParameters, bool> SimulationParameters::parse(int argc, char
   result.seed = optSeed;
   result.runNumber = optRunNum;
   result.runtime = Seconds(optRuntime);
+  result.dryRun = optDryRun;
 
   // create position allocator
   Ptr<RandomRectanglePositionAllocator> positionAlloc =

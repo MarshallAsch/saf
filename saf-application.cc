@@ -67,7 +67,7 @@ TypeId SafApplication::GetTypeId(void) {
               "The number of seconds util a lookup request times out.",
               TimeValue(10.0_sec),
               MakeTimeAccessor(&SafApplication::m_request_timeout),
-              MakeTimeChecker(0.1_sec))
+              MakeTimeChecker(0.5_sec))
           .AddAttribute(
               "DataSize",
               "The number of bytes in each data object.",
@@ -79,7 +79,7 @@ TypeId SafApplication::GetTypeId(void) {
               "The number of seconds between reallocation events.",
               TimeValue(256.0_sec),
               MakeTimeAccessor(&SafApplication::m_reallocation_period),
-              MakeTimeChecker(0.1_sec))
+              MakeTimeChecker(1.0_sec))
           .AddAttribute(
               "TotalDataItems",
               "The total number of data items in the simulation.",
@@ -110,6 +110,12 @@ TypeId SafApplication::GetTypeId(void) {
               DoubleValue(0.0),
               MakeDoubleAccessor(&SafApplication::m_standard_deviation),
               MakeDoubleChecker<double>())
+          .AddAttribute(
+            "StatsCollector",
+            "statistics for stats things",
+            PointerValue(CreateObject<DataCollector>()),
+            MakePointerAccessor(&SafApplication::m_statistics_collector),
+            MakePointerChecker<DataCollector>())
           .AddTraceSource(
               "Tx",
               "A new packet is created and is sent",
@@ -166,6 +172,28 @@ void SafApplication::DoDispose(void) {
 
 void SafApplication::StartApplication(void) {
   NS_LOG_FUNCTION(this);
+
+  // register all the statistics collectors here
+  m_cache_hits = CreateObject<CounterCalculator<> >();
+  m_requests_sent = CreateObject<CounterCalculator<> >();
+  m_responses_sent = CreateObject<CounterCalculator<> >();
+  m_num_timeouts = CreateObject<CounterCalculator<> >();
+  m_success_timings = CreateObject<TimeMinMaxAvgTotalCalculator>();
+  m_response_timings = CreateObject<TimeMinMaxAvgTotalCalculator>();
+
+  m_cache_hits->SetKey("cache-hits");
+  m_requests_sent->SetKey("requests-sent");
+  m_responses_sent->SetKey("responses-sent");
+  m_num_timeouts->SetKey("timeouts");
+  m_success_timings->SetKey("time-for-success");
+  m_response_timings->SetKey("time-for-failed");
+
+  m_statistics_collector->AddDataCalculator(m_cache_hits);
+  m_statistics_collector->AddDataCalculator(m_requests_sent);
+  m_statistics_collector->AddDataCalculator(m_responses_sent);
+  m_statistics_collector->AddDataCalculator(m_num_timeouts);
+  m_statistics_collector->AddDataCalculator(m_success_timings);
+  m_statistics_collector->AddDataCalculator(m_response_timings);
 
   m_running = true;
 
@@ -319,9 +347,21 @@ void SafApplication::HandleRequest(Ptr<Socket> socket) {
       NS_LOG_INFO("RECEIVED lookup command");
 
       uint32_t requestID;
+      uint64_t sentAt;
       uint16_t dataID;
       memcpy(&requestID, &payload[5], sizeof(requestID));
-      memcpy(&dataID, &payload[22], sizeof(dataID));
+      memcpy(&sentAt, &payload[14], sizeof(sentAt));
+      memcpy(&dataID, &payload[30], sizeof(dataID));
+
+     // std::cout << "-----------------------\n";
+     // std::cout << "sent at: " << sentAt << "\n";
+     // std::cout << "req dataID: " << dataID << "\n";
+
+     // std::cout << "receive: ";
+     // for (uint32_t i = 30 ; i < 32; i++) {
+     //   std::cout << unsigned(payload[i]) << " ";
+     // }
+     // std::cout << "\n";
 
       Data item = GetDataItem(dataID);
       if (item.GetStatus() != DataStatus::stored) {
@@ -331,13 +371,14 @@ void SafApplication::HandleRequest(Ptr<Socket> socket) {
 
       NS_LOG_INFO("sending response");
       // generate and send response
-      ResponseMessage r = ResponseMessage(requestID, item);
+      ResponseMessage r = ResponseMessage(requestID, sentAt, item);
       NS_LOG_INFO("made obj packet");
 
       Ptr<Packet> responsePacket = r.ToPacket();
 
       NS_LOG_INFO("generated packet");
 
+      m_responses_sent->Update();
       socket->SendTo(responsePacket, 0, from);
       NS_LOG_INFO("sent packet");
     }
@@ -372,29 +413,28 @@ void SafApplication::HandleResponse(Ptr<Socket> socket) {
       NS_LOG_INFO("handling data received");
       uint16_t dataID;
       uint32_t dataSize;
+      uint64_t askTime;
 
       memcpy(&dataSize, &payload[1], sizeof(dataSize));
-      memcpy(&dataID, &payload[22], sizeof(dataID));
-
-      // std::cout << "rcv: ";
-      // for (uint32_t i = 0 ; i < size; i++) {
-      //  std::cout << unsigned(payload[i]) << " ";
-      //}
-      // std::cout << "\n";
-
-      dataSize -= sizeof(dataID);
+      memcpy(&askTime, &payload[22], sizeof(askTime));
+      memcpy(&dataID, &payload[30], sizeof(dataID));
+      memcpy(&dataID, &payload[30], sizeof(dataID));
+      dataSize -= (sizeof(dataID));
 
       Data item = Data(dataID, dataSize);
       SaveDataItem(item);
 
       // remove from pending request list
       std::set<uint16_t>::iterator it = m_pending_lookups.find(dataID);
+      Time diff = Simulator::Now() - Time::FromInteger(askTime, Time::Unit::MS);
+
       if (dataID == *it) {
         m_pending_lookups.erase(it);
-
+        m_success_timings->Update(diff);
         // log successful request
       } else {
         // log successful request, already gotten or late
+        m_response_timings->Update(diff);
       }
 
       NS_LOG_LOGIC("TODO: Mark cache miss, mark lookup success, remove from pending reponse list");
@@ -419,9 +459,10 @@ void SafApplication::LookupData(uint16_t dataID) {
   if (item.GetStatus() == DataStatus::stored) {
     NS_LOG_LOGIC("TODO: Mark cache hit, mark lookup success");
     // mark cache hit, mark successfull lookup
+    m_cache_hits->Update();
   } else {
     // send broadcast asking for the data item
-    NS_LOG_LOGIC("TODO: Mark cache miss, mark asking peers");
+    // NS_LOG_LOGIC("TODO: Mark cache miss, mark asking peers");
     AskPeers(dataID);
   }
 }
@@ -486,6 +527,7 @@ void SafApplication::AskPeers(uint16_t dataID) {
   m_txTrace(p);
   m_txTraceWithAddresses(p, localAddress, InetSocketAddress(Ipv4Address::GetBroadcast(), m_port));
 
+  m_requests_sent->Update();
   m_socket_send->Send(p);
   m_sent++;
 
@@ -505,6 +547,7 @@ void SafApplication::LookupTimeout(uint16_t dataID) {
 
   if (dataID == *item) {
     NS_LOG_INFO("TODO: mark lookup timed out for data item");
+    m_num_timeouts->Update();
     m_pending_lookups.erase(dataID);
   }
 }
