@@ -156,8 +156,8 @@ SafApplication::~SafApplication() {
   m_socket_recv = 0;
   m_port = 0;
 
-  delete[] m_origianal_data_items;
-  delete[] m_replica_data_items;
+  //delete[] m_origianal_data_items;
+  //delete[] m_replica_data_items;
 
   m_origianal_space = 0;
   m_replica_space = 0;
@@ -204,8 +204,8 @@ void SafApplication::StartApplication(void) {
   // in the helper there is an assert to ensure this is valid when not in optimized builds
   m_origianal_space = m_total_data_items / m_total_num_nodes;
 
-  m_origianal_data_items = new Data[m_origianal_space];
-  m_replica_data_items = new Data[m_replica_space];
+  //m_origianal_data_items = std::vector<Data>(m_origianal_space);
+  //m_replica_data_items = std::vector<Data>(m_replica_space);
   m_access_frequencies = std::vector<std::vector<uint16_t> >(m_total_data_items);
 
   if (m_socket_recv == 0) {
@@ -448,7 +448,7 @@ void SafApplication::HandleResponse(Ptr<Socket> socket) {
 void SafApplication::GenerateDataItems() {
   NS_LOG_FUNCTION(this);
   for (int i = 0; i < m_origianal_space; i++) {
-    m_origianal_data_items[i] = Data(m_dataSize);
+    m_origianal_data_items.push_back(Data(m_dataSize));
   }
 }
 
@@ -473,26 +473,25 @@ void SafApplication::SaveDataItem(Data data) {
   bool found = false;
   bool stored = false;
   int firstFree = -1;
-  for (uint16_t i = 0; i < m_replica_space; i++) {
-    if (!found && m_access_frequencies[i][0] == data.GetDataID()) {
+  for (std::vector<Data>::iterator it = m_replica_data_items.begin() ; it != m_replica_data_items.end(); ++it) {
+    if (!found && m_access_frequencies[it - m_replica_data_items.begin()][0] == data.GetDataID()) {
       found = true;
     }
 
-    if (!stored && m_replica_data_items[i].GetDataID() == data.GetDataID()) {
+    if (!stored && (*it).GetDataID() == data.GetDataID()) {
       stored = true;
     }
-
-    if (firstFree != -1 && m_replica_data_items[i].GetStatus() != DataStatus::stored) {
-      firstFree = i;
-    }
-  }
-
+	}
   if (!found || stored) {
     NS_LOG_INFO("data: " << data.GetDataID() << " Is not being saved");
   }
 
+  if (m_replica_data_items.size() < m_replica_space) {
+    m_replica_data_items.push_back(data);
+  }
+
   // unless there are too many data items being stored this value will never be out of bounds
-  m_replica_data_items[firstFree] = data;
+  //m_replica_data_items[firstFree] = data;
 }
 
 Data SafApplication::GetDataItem(uint16_t dataID) {
@@ -504,12 +503,12 @@ Data SafApplication::GetDataItem(uint16_t dataID) {
     }
   }
 
-  for (int i = 0; i < m_replica_space; i++) {
-    if (m_replica_data_items[i].GetDataID() == dataID) {
+  for (std::vector<Data>::iterator it = m_replica_data_items.begin() ; it != m_replica_data_items.end(); ++it) {
+    if ((*it).GetDataID() == dataID) {
       // m_replica_data_items[i].AccessData(); // increase access frequency
-      return m_replica_data_items[i];
+      return (*it);
     }
-  }
+	}
 
   return Data();
 }
@@ -556,24 +555,16 @@ void SafApplication::RunReplication() {
   NS_LOG_FUNCTION(this);
 
   // check if all the items are stored
-  bool done = true;
-  for (int i = 0; i < m_replica_space; i++) {
-    if (m_replica_data_items[i].GetStatus() != DataStatus::stored) {
-      done = false;
-      break;
-    }
-  }
-
-  if (done) {
+  if (m_replica_data_items.size() == m_replica_space) {
     return;
   }
 
   // check to see which items are not yet found, and request them if necessary
   for (uint16_t i = 0; i < m_replica_space; i++) {
     bool found = false;
-    for (uint16_t j = 0; j < m_replica_space; j++) {
-      if (m_replica_data_items[j].GetStatus() == DataStatus::stored &&
-          m_replica_data_items[j].GetDataID() == m_access_frequencies[i][0]) {
+    for (std::vector<Data>::iterator it = m_replica_data_items.begin() ; it != m_replica_data_items.end(); ++it) {
+      if ((*it).GetStatus() == DataStatus::stored &&
+          (*it).GetDataID() == m_access_frequencies[i][0]) {
         found = true;
         break;
       }

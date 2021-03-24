@@ -127,8 +127,8 @@ class SafApplication : public Application {
 
   EventId m_reallocation_event;  // for pending reallocation events
 
-  Data* m_replica_data_items;    // the block of memory to hold the data items
-  Data* m_origianal_data_items;  // the block of memory to hold the originals data items
+  std::vector<Data> m_replica_data_items;    // the block of memory to hold the data items
+  std::vector<Data> m_origianal_data_items;  // the block of memory to hold the originals data items
 
   std::vector<std::vector<uint16_t> > m_access_frequencies;
   std::set<uint16_t> m_pending_lookups;
