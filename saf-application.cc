@@ -146,8 +146,8 @@ SafApplication::SafApplication() {
   m_socket_recv = 0;
   m_running = false;
 
-  m_origianal_data_items = 0;
-  m_replica_data_items = 0;
+  //m_origianal_data_items = 0;
+  //m_replica_data_items = 0;
 }
 
 SafApplication::~SafApplication() {
@@ -353,6 +353,8 @@ void SafApplication::HandleRequest(Ptr<Socket> socket) {
       memcpy(&sentAt, &payload[14], sizeof(sentAt));
       memcpy(&dataID, &payload[30], sizeof(dataID));
 
+      delete[] payload;
+
       // std::cout << "-----------------------\n";
       // std::cout << "sent at: " << sentAt << "\n";
       // std::cout << "req dataID: " << dataID << "\n";
@@ -420,6 +422,7 @@ void SafApplication::HandleResponse(Ptr<Socket> socket) {
       memcpy(&dataID, &payload[30], sizeof(dataID));
       memcpy(&dataID, &payload[30], sizeof(dataID));
       dataSize -= (sizeof(dataID));
+      delete[] payload;
 
       Data item = Data(dataID, dataSize);
       SaveDataItem(item);
@@ -429,7 +432,7 @@ void SafApplication::HandleResponse(Ptr<Socket> socket) {
       Time diff = Simulator::Now() - Time::FromInteger(askTime, Time::Unit::MS);
 
       if (dataID == *it) {
-        m_pending_lookups.erase(it);
+        m_pending_lookups.erase(*it);
         m_success_timings->Update(diff);
         // log successful request
       } else {
@@ -472,7 +475,7 @@ void SafApplication::SaveDataItem(Data data) {
 
   bool found = false;
   bool stored = false;
-  int firstFree = -1;
+  //int firstFree = -1;
   for (std::vector<Data>::iterator it = m_replica_data_items.begin() ; it != m_replica_data_items.end(); ++it) {
     if (!found && m_access_frequencies[it - m_replica_data_items.begin()][0] == data.GetDataID()) {
       found = true;
