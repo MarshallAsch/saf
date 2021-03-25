@@ -111,11 +111,47 @@ TypeId SafApplication::GetTypeId(void) {
               MakeDoubleAccessor(&SafApplication::m_standard_deviation),
               MakeDoubleChecker<double>())
           .AddAttribute(
-              "StatsCollector",
-              "statistics for stats things",
-              PointerValue(CreateObject<DataCollector>()),
-              MakePointerAccessor(&SafApplication::m_statistics_collector),
-              MakePointerChecker<DataCollector>())
+            "cacheHitCallback",
+            "a callback to be called when a data item is looked up but found in the local cache",
+            CallbackValue(),
+            MakeCallbackAccessor(&SafApplication::m_cacheHitCallback),
+            MakeCallbackChecker())
+          .AddAttribute(
+            "replicationRequestCallback",
+            "a callback to be called when the replication process sends a lookup request",
+            CallbackValue(),
+            MakeCallbackAccessor(&SafApplication::m_replicationRequestCallback),
+            MakeCallbackChecker())
+          .AddAttribute(
+            "requestSentCallback",
+            "a callback to be called when a data item is requested from the nodes peers",
+            CallbackValue(),
+            MakeCallbackAccessor(&SafApplication::m_requestSentCallback),
+            MakeCallbackChecker())
+          .AddAttribute(
+            "responseSentCallback",
+            "a callback to be called when a data item being sent to a remote peer",
+            CallbackValue(),
+            MakeCallbackAccessor(&SafApplication::m_responseSentCallback),
+            MakeCallbackChecker())
+          .AddAttribute(
+            "timeoutCallback",
+            "a callback to be called when a data request times out",
+            CallbackValue(),
+            MakeCallbackAccessor(&SafApplication::m_requestTimeoutCallback),
+            MakeCallbackChecker())
+          .AddAttribute(
+            "responseReceivedCallback",
+            "a callback to be called when a data item successfully received from a remote peer after a request",
+            CallbackValue(),
+            MakeCallbackAccessor(&SafApplication::m_responseReceivedCallback),
+            MakeCallbackChecker())
+          .AddAttribute(
+            "lateResponseCallback",
+            "a callback to be called when a data item is received after it times out or if it has already been received",
+            CallbackValue(),
+            MakeCallbackAccessor(&SafApplication::m_lateResponseCallback),
+            MakeCallbackChecker())
           .AddTraceSource(
               "Tx",
               "A new packet is created and is sent",
@@ -172,29 +208,6 @@ void SafApplication::DoDispose(void) {
 
 void SafApplication::StartApplication(void) {
   NS_LOG_FUNCTION(this);
-
-  // register all the statistics collectors here
-  m_cache_hits = CreateObject<CounterCalculator<> >();
-  m_requests_sent = CreateObject<CounterCalculator<> >();
-  m_responses_sent = CreateObject<CounterCalculator<> >();
-  m_num_timeouts = CreateObject<CounterCalculator<> >();
-  m_success_timings = CreateObject<TimeMinMaxAvgTotalCalculator>();
-  m_response_timings = CreateObject<TimeMinMaxAvgTotalCalculator>();
-
-  m_cache_hits->SetKey("cache-hits");
-  m_requests_sent->SetKey("requests-sent");
-  m_responses_sent->SetKey("responses-sent");
-  m_num_timeouts->SetKey("timeouts");
-  m_success_timings->SetKey("time-for-success");
-  m_response_timings->SetKey("time-for-failed");
-
-  m_statistics_collector->AddDataCalculator(m_cache_hits);
-  m_statistics_collector->AddDataCalculator(m_requests_sent);
-  m_statistics_collector->AddDataCalculator(m_responses_sent);
-  m_statistics_collector->AddDataCalculator(m_num_timeouts);
-  m_statistics_collector->AddDataCalculator(m_success_timings);
-  m_statistics_collector->AddDataCalculator(m_response_timings);
-
   m_running = true;
 
   if (m_replica_space > m_total_data_items) {
@@ -380,7 +393,7 @@ void SafApplication::HandleRequest(Ptr<Socket> socket) {
 
       NS_LOG_INFO("generated packet");
 
-      m_responses_sent->Update();
+      m_responseSentCallback(dataID, GetNode()->GetId());
       socket->SendTo(responsePacket, 0, from);
       NS_LOG_INFO("sent packet");
     }
@@ -433,11 +446,11 @@ void SafApplication::HandleResponse(Ptr<Socket> socket) {
 
       if (dataID == *it) {
         m_pending_lookups.erase(*it);
-        m_success_timings->Update(diff);
+        m_responseReceivedCallback(dataID, GetNode()->GetId(), diff);
         // log successful request
       } else {
         // log successful request, already gotten or late
-        m_response_timings->Update(diff);
+        m_lateResponseCallback(dataID, GetNode()->GetId(), diff);
       }
 
       NS_LOG_LOGIC("TODO: Mark cache miss, mark lookup success, remove from pending reponse list");
@@ -462,7 +475,7 @@ void SafApplication::LookupData(uint16_t dataID) {
   if (item.GetStatus() == DataStatus::stored) {
     NS_LOG_LOGIC("TODO: Mark cache hit, mark lookup success");
     // mark cache hit, mark successfull lookup
-    m_cache_hits->Update();
+    m_cacheHitCallback(dataID, GetNode()->GetId());
   } else {
     // send broadcast asking for the data item
     // NS_LOG_LOGIC("TODO: Mark cache miss, mark asking peers");
@@ -529,7 +542,7 @@ void SafApplication::AskPeers(uint16_t dataID) {
   m_txTrace(p);
   m_txTraceWithAddresses(p, localAddress, InetSocketAddress(Ipv4Address::GetBroadcast(), m_port));
 
-  m_requests_sent->Update();
+  m_requestSentCallback(dataID, GetNode()->GetId());
   m_socket_send->Send(p);
   m_sent++;
 
@@ -549,7 +562,7 @@ void SafApplication::LookupTimeout(uint16_t dataID) {
 
   if (dataID == *item) {
     NS_LOG_INFO("TODO: mark lookup timed out for data item");
-    m_num_timeouts->Update();
+    m_requestTimeoutCallback(dataID, GetNode()->GetId());
     m_pending_lookups.erase(dataID);
   }
 }
@@ -574,6 +587,7 @@ void SafApplication::RunReplication() {
     }
 
     if (!found) {
+      m_replicationRequestCallback(m_access_frequencies[i][0], GetNode()->GetId());
       AskPeers(m_access_frequencies[i][0]);
     }
   }

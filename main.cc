@@ -70,7 +70,74 @@ using namespace saf;
 
 bool verbose = true;
 
+Ptr<DataCollector> m_statistics_collector;
+Ptr<CounterCalculator<> > m_cache_hits;
+Ptr<CounterCalculator<> > m_requests_sent;
+Ptr<CounterCalculator<> > m_responses_sent;
+Ptr<CounterCalculator<> > m_num_timeouts;
+Ptr<TimeMinMaxAvgTotalCalculator> m_success_timings;
+Ptr<TimeMinMaxAvgTotalCalculator> m_response_timings;
+
 // NS_LOG_COMPONENT_DEFINE("SAF runner");
+
+
+// callback functions for statistics colllection
+void setupStatistics(Ptr<DataCollector> collector) {
+  m_cache_hits = CreateObject<CounterCalculator<> >();
+  m_requests_sent = CreateObject<CounterCalculator<> >();
+  m_responses_sent = CreateObject<CounterCalculator<> >();
+  m_num_timeouts = CreateObject<CounterCalculator<> >();
+  m_success_timings = CreateObject<TimeMinMaxAvgTotalCalculator>();
+  m_response_timings = CreateObject<TimeMinMaxAvgTotalCalculator>();
+
+  m_cache_hits->SetKey("cache-hits");
+  m_requests_sent->SetKey("requests-sent");
+  m_responses_sent->SetKey("responses-sent");
+  m_num_timeouts->SetKey("timeouts");
+  m_success_timings->SetKey("time-for-success");
+  m_response_timings->SetKey("time-for-failed");
+
+  collector->AddDataCalculator(m_cache_hits);
+  collector->AddDataCalculator(m_requests_sent);
+  collector->AddDataCalculator(m_responses_sent);
+  collector->AddDataCalculator(m_num_timeouts);
+  collector->AddDataCalculator(m_success_timings);
+  collector->AddDataCalculator(m_response_timings);
+}
+
+
+void cacheHitCB(uint16_t dataID, uint32_t nodeID) {
+  m_cache_hits->Update();
+}
+
+void replicationRequestCB(uint16_t dataID, uint32_t nodeID) {
+  //noop
+}
+
+void requestSentCB(uint16_t dataID, uint32_t nodeID) {
+  m_requests_sent->Update();
+}
+
+void responseSentCB(uint16_t dataID, uint32_t nodeID) {
+  m_responses_sent->Update();
+}
+
+void requestTimeoutCB(uint16_t dataID, uint32_t nodeID) {
+  m_num_timeouts->Update();
+}
+
+void responseReceivedCB(uint16_t dataID, uint32_t nodeID, Time delay) {
+  m_success_timings->Update(delay);
+}
+
+void lateResponseReceivedCB(uint16_t dataID, uint32_t nodeID, Time delay) {
+  m_response_timings->Update(delay);
+}
+
+
+
+
+
 
 void runWired() {
   Address serverAddress;
