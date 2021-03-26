@@ -20,8 +20,8 @@
 #ifndef __logging_h_
 #define __logging_h_
 
-#include "ns3/core-module.h"
-
+//#include "ns3/core-module.h"
+#include "ns3/log.h"
 extern ns3::LogComponent g_log;
 
 #endif

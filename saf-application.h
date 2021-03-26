@@ -31,7 +31,7 @@
 #include "ns3/time-data-calculators.h"
 #include "ns3/traced-callback.h"
 #include "ns3/callback.h"
-
+#include "ns3/object.h"
 #include <set>     // std::set
 #include <vector>  // std::vector
 

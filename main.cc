@@ -180,7 +180,7 @@ void runWired() {
   SafApplicationHelper app(5000, n.GetN(), n.GetN());
   app.SetAttribute("ReallocationPeriod", TimeValue(5.0_sec));
   Ptr<DataCollector> collectorPtr = data.GetObject<DataCollector>();
-  app.SetAttribute("StatsCollector", PointerValue(collectorPtr));
+  //app.SetAttribute("StatsCollector", PointerValue(collectorPtr));
   // any extra paramters would be set here
 
   ApplicationContainer apps = app.Install(n);
