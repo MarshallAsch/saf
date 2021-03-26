@@ -75,35 +75,11 @@ Ptr<CounterCalculator<> > m_cache_hits;
 Ptr<CounterCalculator<> > m_requests_sent;
 Ptr<CounterCalculator<> > m_responses_sent;
 Ptr<CounterCalculator<> > m_num_timeouts;
+Ptr<CounterCalculator<> > m_replication_sent;
 Ptr<TimeMinMaxAvgTotalCalculator> m_success_timings;
 Ptr<TimeMinMaxAvgTotalCalculator> m_response_timings;
 
 // NS_LOG_COMPONENT_DEFINE("SAF runner");
-
-
-// callback functions for statistics colllection
-void setupStatistics(Ptr<DataCollector> collector) {
-  m_cache_hits = CreateObject<CounterCalculator<> >();
-  m_requests_sent = CreateObject<CounterCalculator<> >();
-  m_responses_sent = CreateObject<CounterCalculator<> >();
-  m_num_timeouts = CreateObject<CounterCalculator<> >();
-  m_success_timings = CreateObject<TimeMinMaxAvgTotalCalculator>();
-  m_response_timings = CreateObject<TimeMinMaxAvgTotalCalculator>();
-
-  m_cache_hits->SetKey("cache-hits");
-  m_requests_sent->SetKey("requests-sent");
-  m_responses_sent->SetKey("responses-sent");
-  m_num_timeouts->SetKey("timeouts");
-  m_success_timings->SetKey("time-for-success");
-  m_response_timings->SetKey("time-for-failed");
-
-  collector->AddDataCalculator(m_cache_hits);
-  collector->AddDataCalculator(m_requests_sent);
-  collector->AddDataCalculator(m_responses_sent);
-  collector->AddDataCalculator(m_num_timeouts);
-  collector->AddDataCalculator(m_success_timings);
-  collector->AddDataCalculator(m_response_timings);
-}
 
 
 void cacheHitCB(uint16_t dataID, uint32_t nodeID) {
@@ -111,7 +87,7 @@ void cacheHitCB(uint16_t dataID, uint32_t nodeID) {
 }
 
 void replicationRequestCB(uint16_t dataID, uint32_t nodeID) {
-  //noop
+  m_replication_sent->Update();
 }
 
 void requestSentCB(uint16_t dataID, uint32_t nodeID) {
@@ -172,6 +148,31 @@ void runWired() {
   data.AddMetadata("Author", "Marshall Asch");
   data.AddMetadata("Date", "March 18, 2021");
 
+  m_cache_hits = CreateObject<CounterCalculator<> >();
+  m_requests_sent = CreateObject<CounterCalculator<> >();
+  m_replication_sent= CreateObject<CounterCalculator<> >();
+  m_responses_sent = CreateObject<CounterCalculator<> >();
+  m_num_timeouts = CreateObject<CounterCalculator<> >();
+  m_success_timings = CreateObject<TimeMinMaxAvgTotalCalculator>();
+  m_response_timings = CreateObject<TimeMinMaxAvgTotalCalculator>();
+
+  m_cache_hits->SetKey("cache-hits");
+  m_requests_sent->SetKey("requests-sent");
+  m_replication_sent->SetKey("replication-sent");
+  m_responses_sent->SetKey("responses-sent");
+  m_num_timeouts->SetKey("timeouts");
+  m_success_timings->SetKey("time-for-success");
+  m_response_timings->SetKey("time-for-failed");
+
+  data.AddDataCalculator(m_cache_hits);
+  data.AddDataCalculator(m_requests_sent);
+  data.AddDataCalculator(m_replication_sent);
+  data.AddDataCalculator(m_responses_sent);
+  data.AddDataCalculator(m_num_timeouts);
+  data.AddDataCalculator(m_success_timings);
+  data.AddDataCalculator(m_response_timings);
+  //setupStatistics(data);
+
   // format stats collection in sqlite
   Ptr<DataOutputInterface> output = CreateObject<OmnetDataOutput>();
 
@@ -179,8 +180,17 @@ void runWired() {
   // install the application onto the nodes here
   SafApplicationHelper app(5000, n.GetN(), n.GetN());
   app.SetAttribute("ReallocationPeriod", TimeValue(5.0_sec));
+
+  app.SetAttribute("cacheHitCallback", CallbackValue(MakeCallback(&cacheHitCB)));
+  app.SetAttribute("requestSentCallback", CallbackValue(MakeCallback(&requestSentCB)));
+  app.SetAttribute("responseSentCallback", CallbackValue(MakeCallback(&responseSentCB)));
+  app.SetAttribute("replicationRequestCallback", CallbackValue(MakeCallback(&replicationRequestCB)));
+  app.SetAttribute("timeoutCallback", CallbackValue(MakeCallback(&requestTimeoutCB)));
+  app.SetAttribute("responseReceivedCallback", CallbackValue(MakeCallback(&responseReceivedCB)));
+  app.SetAttribute("lateResponseCallback", CallbackValue(MakeCallback(&lateResponseReceivedCB)));
+
+
   Ptr<DataCollector> collectorPtr = data.GetObject<DataCollector>();
-  //app.SetAttribute("StatsCollector", PointerValue(collectorPtr));
   // any extra paramters would be set here
 
   ApplicationContainer apps = app.Install(n);

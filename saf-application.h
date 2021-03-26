@@ -179,9 +179,9 @@ class SafApplication : public Application {
   Callback<void, uint16_t, uint32_t> m_replicationRequestCallback;
   Callback<void, uint16_t, uint32_t> m_requestSentCallback;
   Callback<void, uint16_t, uint32_t> m_responseSentCallback;
-  Callback<void, uint16_t, uint16_t> m_requestTimeoutCallback;
-  Callback<void, uint16_t, uint16_t, ns3::Time> m_responseReceivedCallback;
-  Callback<void, uint16_t, uint16_t, ns3::Time> m_lateResponseCallback;
+  Callback<void, uint16_t, uint32_t> m_requestTimeoutCallback;
+  Callback<void, uint16_t, uint32_t, ns3::Time> m_responseReceivedCallback;
+  Callback<void, uint16_t, uint32_t, ns3::Time> m_lateResponseCallback;
 };
 
 }  // namespace saf

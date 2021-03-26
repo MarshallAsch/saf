@@ -182,6 +182,14 @@ SafApplication::SafApplication() {
   m_socket_recv = 0;
   m_running = false;
 
+  m_cacheHitCallback = MakeNullCallback<void, uint16_t, uint32_t>();
+  m_replicationRequestCallback = MakeNullCallback<void, uint16_t, uint32_t>();
+  m_requestSentCallback = MakeNullCallback<void, uint16_t, uint32_t>();
+  m_responseSentCallback = MakeNullCallback<void, uint16_t, uint32_t>();
+  m_requestTimeoutCallback = MakeNullCallback<void, uint16_t, uint32_t>();
+  m_responseReceivedCallback = MakeNullCallback<void, uint16_t, uint32_t, ns3::Time>();
+  m_lateResponseCallback = MakeNullCallback<void, uint16_t, uint32_t, ns3::Time>();
+
   //m_origianal_data_items = 0;
   //m_replica_data_items = 0;
 }
@@ -393,7 +401,7 @@ void SafApplication::HandleRequest(Ptr<Socket> socket) {
 
       NS_LOG_INFO("generated packet");
 
-      m_responseSentCallback(dataID, GetNode()->GetId());
+      if (!m_responseSentCallback.IsNull()) m_responseSentCallback(dataID, GetNode()->GetId());
       socket->SendTo(responsePacket, 0, from);
       NS_LOG_INFO("sent packet");
     }
@@ -446,11 +454,11 @@ void SafApplication::HandleResponse(Ptr<Socket> socket) {
 
       if (dataID == *it) {
         m_pending_lookups.erase(*it);
-        m_responseReceivedCallback(dataID, GetNode()->GetId(), diff);
+        if (!m_responseReceivedCallback.IsNull()) m_responseReceivedCallback(dataID, GetNode()->GetId(), diff);
         // log successful request
       } else {
         // log successful request, already gotten or late
-        m_lateResponseCallback(dataID, GetNode()->GetId(), diff);
+        if (!m_lateResponseCallback.IsNull()) m_lateResponseCallback(dataID, GetNode()->GetId(), diff);
       }
 
       NS_LOG_LOGIC("TODO: Mark cache miss, mark lookup success, remove from pending reponse list");
@@ -475,7 +483,7 @@ void SafApplication::LookupData(uint16_t dataID) {
   if (item.GetStatus() == DataStatus::stored) {
     NS_LOG_LOGIC("TODO: Mark cache hit, mark lookup success");
     // mark cache hit, mark successfull lookup
-    m_cacheHitCallback(dataID, GetNode()->GetId());
+    if (!m_cacheHitCallback.IsNull()) m_cacheHitCallback(dataID, GetNode()->GetId());
   } else {
     // send broadcast asking for the data item
     // NS_LOG_LOGIC("TODO: Mark cache miss, mark asking peers");
@@ -542,7 +550,7 @@ void SafApplication::AskPeers(uint16_t dataID) {
   m_txTrace(p);
   m_txTraceWithAddresses(p, localAddress, InetSocketAddress(Ipv4Address::GetBroadcast(), m_port));
 
-  m_requestSentCallback(dataID, GetNode()->GetId());
+  if (!m_requestSentCallback.IsNull())  m_requestSentCallback(dataID, GetNode()->GetId());
   m_socket_send->Send(p);
   m_sent++;
 
@@ -562,7 +570,7 @@ void SafApplication::LookupTimeout(uint16_t dataID) {
 
   if (dataID == *item) {
     NS_LOG_INFO("TODO: mark lookup timed out for data item");
-    m_requestTimeoutCallback(dataID, GetNode()->GetId());
+    if (!m_requestTimeoutCallback.IsNull()) m_requestTimeoutCallback(dataID, GetNode()->GetId());
     m_pending_lookups.erase(dataID);
   }
 }
@@ -587,7 +595,7 @@ void SafApplication::RunReplication() {
     }
 
     if (!found) {
-      m_replicationRequestCallback(m_access_frequencies[i][0], GetNode()->GetId());
+      if (!m_replicationRequestCallback.IsNull())  m_replicationRequestCallback(m_access_frequencies[i][0], GetNode()->GetId());
       AskPeers(m_access_frequencies[i][0]);
     }
   }
