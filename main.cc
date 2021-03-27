@@ -70,7 +70,7 @@ using namespace saf;
 
 bool verbose = true;
 
-Ptr<DataCollector> m_statistics_collector;
+DataCollector data;
 Ptr<CounterCalculator<> > m_cache_hits;
 Ptr<CounterCalculator<> > m_requests_sent;
 Ptr<CounterCalculator<> > m_responses_sent;
@@ -78,8 +78,6 @@ Ptr<CounterCalculator<> > m_num_timeouts;
 Ptr<CounterCalculator<> > m_replication_sent;
 Ptr<TimeMinMaxAvgTotalCalculator> m_success_timings;
 Ptr<TimeMinMaxAvgTotalCalculator> m_response_timings;
-
-// NS_LOG_COMPONENT_DEFINE("SAF runner");
 
 
 void cacheHitCB(uint16_t dataID, uint32_t nodeID) {
@@ -111,7 +109,37 @@ void lateResponseReceivedCB(uint16_t dataID, uint32_t nodeID, Time delay) {
 }
 
 
+void setupStats(uint32_t runNum, std::string input) {
 
+  // change some of this stuff to real values that are not hardcoded
+  data.DescribeRun("SAF experiment", "wireless", input, std::to_string(runNum));
+  data.AddMetadata("Author", "Marshall Asch");
+
+
+  m_cache_hits = CreateObject<CounterCalculator<> >();
+  m_requests_sent = CreateObject<CounterCalculator<> >();
+  m_replication_sent= CreateObject<CounterCalculator<> >();
+  m_responses_sent = CreateObject<CounterCalculator<> >();
+  m_num_timeouts = CreateObject<CounterCalculator<> >();
+  m_success_timings = CreateObject<TimeMinMaxAvgTotalCalculator>();
+  m_response_timings = CreateObject<TimeMinMaxAvgTotalCalculator>();
+
+  m_cache_hits->SetKey("cache-hits");
+  m_requests_sent->SetKey("requests-sent");
+  m_replication_sent->SetKey("replication-sent");
+  m_responses_sent->SetKey("responses-sent");
+  m_num_timeouts->SetKey("timeouts");
+  m_success_timings->SetKey("time-for-success");
+  m_response_timings->SetKey("time-for-failed");
+
+  data.AddDataCalculator(m_cache_hits);
+  data.AddDataCalculator(m_requests_sent);
+  data.AddDataCalculator(m_replication_sent);
+  data.AddDataCalculator(m_responses_sent);
+  data.AddDataCalculator(m_num_timeouts);
+  data.AddDataCalculator(m_success_timings);
+  data.AddDataCalculator(m_response_timings);
+}
 
 
 
@@ -142,40 +170,6 @@ void runWired() {
   Ipv4InterfaceContainer i = ipv4.Assign(d);
   serverAddress = Address(i.GetAddress(1));
 
-  // setup the stats collector
-  DataCollector data;  // = CreateObject<DataCollector>();
-  data.DescribeRun("this is a test experiment", "saf wired", "", "1");
-  data.AddMetadata("Author", "Marshall Asch");
-  data.AddMetadata("Date", "March 18, 2021");
-
-  m_cache_hits = CreateObject<CounterCalculator<> >();
-  m_requests_sent = CreateObject<CounterCalculator<> >();
-  m_replication_sent= CreateObject<CounterCalculator<> >();
-  m_responses_sent = CreateObject<CounterCalculator<> >();
-  m_num_timeouts = CreateObject<CounterCalculator<> >();
-  m_success_timings = CreateObject<TimeMinMaxAvgTotalCalculator>();
-  m_response_timings = CreateObject<TimeMinMaxAvgTotalCalculator>();
-
-  m_cache_hits->SetKey("cache-hits");
-  m_requests_sent->SetKey("requests-sent");
-  m_replication_sent->SetKey("replication-sent");
-  m_responses_sent->SetKey("responses-sent");
-  m_num_timeouts->SetKey("timeouts");
-  m_success_timings->SetKey("time-for-success");
-  m_response_timings->SetKey("time-for-failed");
-
-  data.AddDataCalculator(m_cache_hits);
-  data.AddDataCalculator(m_requests_sent);
-  data.AddDataCalculator(m_replication_sent);
-  data.AddDataCalculator(m_responses_sent);
-  data.AddDataCalculator(m_num_timeouts);
-  data.AddDataCalculator(m_success_timings);
-  data.AddDataCalculator(m_response_timings);
-  //setupStatistics(data);
-
-  // format stats collection in sqlite
-  Ptr<DataOutputInterface> output = CreateObject<OmnetDataOutput>();
-
   NS_LOG_INFO("Create Applications.");
   // install the application onto the nodes here
   SafApplicationHelper app(5000, n.GetN(), n.GetN());
@@ -188,9 +182,6 @@ void runWired() {
   app.SetAttribute("timeoutCallback", CallbackValue(MakeCallback(&requestTimeoutCB)));
   app.SetAttribute("responseReceivedCallback", CallbackValue(MakeCallback(&responseReceivedCB)));
   app.SetAttribute("lateResponseCallback", CallbackValue(MakeCallback(&lateResponseReceivedCB)));
-
-
-  Ptr<DataCollector> collectorPtr = data.GetObject<DataCollector>();
   // any extra paramters would be set here
 
   ApplicationContainer apps = app.Install(n);
@@ -208,7 +199,9 @@ void runWired() {
   NS_LOG_INFO("Run Simulation.");
   Simulator::Run();
 
+  Ptr<DataOutputInterface> output = CreateObject<OmnetDataOutput>();
   output->Output(data);
+
   Simulator::Destroy();
   NS_LOG_INFO("Done.");
 }
@@ -236,14 +229,29 @@ int main(int argc, char* argv[]) {
 
   Time::SetResolution(Time::NS);
 
+  if (!ok) {
+    std::cerr << "Error parsing the parameters.\n";
+    return -1;
+  }
+
+  if (params.dryRun) {
+    std::cout << "dry run only printing the paramaters this is going to be run with\n";
+    std::cout << "==============================================================\n";
+    std::cout << std::string(params) << "\n";
+    return 0;
+  }
+
+
   // this will set a seed so that the same numbers are not generated each time.
   // the run number should be incremented each time this simulation is run to ensure streams do not
   // overlap
   RngSeedManager::SetSeed(params.seed);
   RngSeedManager::SetRun(params.runNumber);
 
-  runWired();
-  return 0;
+  setupStats(params.runNumber, std::string(params));
+
+  //runWired();
+  //return 0;
 
   // create node containers
   NodeContainer nodes;
@@ -295,14 +303,18 @@ int main(int argc, char* argv[]) {
   // and floors respectively since this simulation is assuming a city/town setting we will select
   // a value of n of 3 to account for mostly open outdoor space with some obsticles reference loss
   // for the 2.4 GHz is around 41.7 dB apps.dtic.mil/dtic/tr/fulltext/u2/a25656s.pdf (page 19)
-  wifiChannel.AddPropagationLoss(
-      "ns3::LogDistancePropagationLossModel",
-      "Exponent",
-      DoubleValue(3),
-      "ReferenceDistance",
-      DoubleValue(1.0),
-      "ReferenceLoss",
-      DoubleValue(41.7));
+  // wifiChannel.AddPropagationLoss(
+  //     "ns3::LogDistancePropagationLossModel",
+  //     "Exponent",
+  //     DoubleValue(3),
+  //     "ReferenceDistance",
+  //     DoubleValue(1.0),
+  //     "ReferenceLoss",
+  //     DoubleValue(41.7));
+  wifiPhy.SetChannel(wifiChannel.Create());
+
+  wifiChannel.AddPropagationLoss("ns3::RangePropagationLossModel",
+            "MaxRange", DoubleValue(params.wifiRadius));
   wifiPhy.SetChannel(wifiChannel.Create());
 
   // set radio to ad hoc network mode? This seems to be needed
@@ -337,6 +349,13 @@ int main(int argc, char* argv[]) {
   // install the application onto the nodes here
   SafApplicationHelper app(5000, params.totalNodes, params.totalDataItems);
   // any extra paramters would be set here
+  app.SetAttribute("cacheHitCallback", CallbackValue(MakeCallback(&cacheHitCB)));
+  app.SetAttribute("requestSentCallback", CallbackValue(MakeCallback(&requestSentCB)));
+  app.SetAttribute("responseSentCallback", CallbackValue(MakeCallback(&responseSentCB)));
+  app.SetAttribute("replicationRequestCallback", CallbackValue(MakeCallback(&replicationRequestCB)));
+  app.SetAttribute("timeoutCallback", CallbackValue(MakeCallback(&requestTimeoutCB)));
+  app.SetAttribute("responseReceivedCallback", CallbackValue(MakeCallback(&responseReceivedCB)));
+  app.SetAttribute("lateResponseCallback", CallbackValue(MakeCallback(&lateResponseReceivedCB)));
 
   ApplicationContainer apps = app.Install(nodes);
 
@@ -348,15 +367,17 @@ int main(int argc, char* argv[]) {
   // actually run the simulation
   // AnimationInterface anim( "animation-test.xml");
   // anim.SetMobilityPollInterval(Seconds(1));
-  AnimationInterface anim(params.netanimTraceFilePath);
+  //AnimationInterface anim(params.netanimTraceFilePath);
 
-  AsciiTraceHelper ascii;
-  wifiPhy.EnableAsciiAll(ascii.CreateFileStream("saf.tr"));
-  wifiPhy.EnablePcapAll("saf", false);
+  //AsciiTraceHelper ascii;
+  //wifiPhy.EnableAsciiAll(ascii.CreateFileStream("saf.tr"));
+  //wifiPhy.EnablePcapAll("saf", false);
 
   // actually run the simulation
   Simulator::Stop(params.runtime);
   Simulator::Run();
+  Ptr<DataOutputInterface> output = CreateObject<OmnetDataOutput>();
+  output->Output(data);
   Simulator::Destroy();
 
   return 0;

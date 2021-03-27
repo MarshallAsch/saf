@@ -81,7 +81,7 @@ std::pair<SimulationParameters, bool> SimulationParameters::parse(int argc, char
   cmd.AddValue("start-delay", "Number of seconds before the application starts", optStartupDelay);
   cmd.AddValue("seed", "Simulation seed", optSeed);
   cmd.AddValue("run", "Simulation run", optRunNum);
-  cmd.AddNonOption(
+  cmd.AddValue(
       "dry-run",
       "Don't actually run the simulation, just print the parameters",
       optDryRun);
@@ -267,4 +267,22 @@ std::pair<SimulationParameters, bool> SimulationParameters::parse(int argc, char
 
   return std::pair<SimulationParameters, bool>(result, ok);
 }
+
+/*
+std::ostream& operator<<(std::ostream &strm, const SimulationParameters &param) {
+
+  return strm << "params::{ seed: " << param.seed << ", runNum: " << param.runNumber
+  << ", runTime: " << param.runtime.GetMilliSeconds() << "ms, startUpDelay: "
+  << param.startupDelay.GetMilliSeconds() << "ms, numNodes: " << param.totalNodes <<
+  ", numData: " << param.totalDataItems << ", requestTimeout: " <<
+  param.requestTimeout.GetMilliSeconds() << "ms, relocationPeriod: " <<
+  param.relocationPeriod.GetMilliSeconds() << "ms, speed: " << param.speed << ", pauseTime: " <<
+  param.pause << ", replicaSpace: " << param.replicaSpace << ", dataSize: " << param.dataSize <<
+  ", accessFrequency: " << param.accessFrequencyType << ", sd: " << param.standardDeviation << ", routingProtocol: " <<
+  param.routingProtocol << ", wifiRange: " << param.wifiRadius << "m }";
+}
+*/
+
+
+
 }  // namespace saf
