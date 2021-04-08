@@ -24,6 +24,9 @@ and Hara's methods have been the defacto standard that others are compared to).
 *Note*: Hara implemented their algorithm using a custom built simulator, we have
 chosen to implement it using the popular NS-3 network simulator instead.
 
+## Prereqs:
+Not sure if there are others but on ubuntu:
+- sqlite3, libsqlite3-dev
 
 ## Building this project
 
