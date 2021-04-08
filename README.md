@@ -60,7 +60,7 @@ Reproducibility is one of the key goals of simulator studies.
 
    ```sh
    cd ..
-   ./waf --run 'scratch/saf/saf`
+   ./waf --run 'scratch/saf/saf'
    ```
 
 ## Running the simulation
