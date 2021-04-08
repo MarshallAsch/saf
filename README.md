@@ -81,7 +81,7 @@ You can view an animation of the simulation using `NetAnim`, which is included
 with the ns-3 all-in-one distribution. To do so, run the following:
 
 ```
-./waf --run 'scratch/saf/saf --animation-xml=path/to/saf.xml
+./waf --run 'scratch/saf/saf --animation-xml=path/to/saf.xml'
 ```
 
 This will generate an XML file at the specified path. You can then open this
