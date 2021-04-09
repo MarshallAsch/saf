@@ -1,5 +1,7 @@
 ![GitHub Workflow Status (branch)](https://img.shields.io/github/workflow/status/marshallasch/saf/Clang-format/main)
 ![GitHub](https://img.shields.io/github/license/marshallasch/saf?style=plastic)
+![Lines of code](https://img.shields.io/tokei/lines/github/marshallasch/saf?style=plastic)
+![NS3 version](https://img.shields.io/badge/NS--3-3.32-blueviolet?style=plastic)
 
 # SAF Simulation
 
