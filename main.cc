@@ -79,26 +79,15 @@ Ptr<CounterCalculator<> > m_replication_sent;
 Ptr<TimeMinMaxAvgTotalCalculator> m_success_timings;
 Ptr<TimeMinMaxAvgTotalCalculator> m_response_timings;
 
+void cacheHitCB(uint16_t dataID, uint32_t nodeID) { m_cache_hits->Update(); }
 
-void cacheHitCB(uint16_t dataID, uint32_t nodeID) {
-  m_cache_hits->Update();
-}
+void replicationRequestCB(uint16_t dataID, uint32_t nodeID) { m_replication_sent->Update(); }
 
-void replicationRequestCB(uint16_t dataID, uint32_t nodeID) {
-  m_replication_sent->Update();
-}
+void requestSentCB(uint16_t dataID, uint32_t nodeID) { m_requests_sent->Update(); }
 
-void requestSentCB(uint16_t dataID, uint32_t nodeID) {
-  m_requests_sent->Update();
-}
+void responseSentCB(uint16_t dataID, uint32_t nodeID) { m_responses_sent->Update(); }
 
-void responseSentCB(uint16_t dataID, uint32_t nodeID) {
-  m_responses_sent->Update();
-}
-
-void requestTimeoutCB(uint16_t dataID, uint32_t nodeID) {
-  m_num_timeouts->Update();
-}
+void requestTimeoutCB(uint16_t dataID, uint32_t nodeID) { m_num_timeouts->Update(); }
 
 void responseReceivedCB(uint16_t dataID, uint32_t nodeID, Time delay) {
   m_success_timings->Update(delay);
@@ -108,17 +97,14 @@ void lateResponseReceivedCB(uint16_t dataID, uint32_t nodeID, Time delay) {
   m_response_timings->Update(delay);
 }
 
-
 void setupStats(uint32_t runNum, std::string input) {
-
   // change some of this stuff to real values that are not hardcoded
   data.DescribeRun("SAF experiment", "wireless", input, std::to_string(runNum));
   data.AddMetadata("Author", "Marshall Asch");
 
-
   m_cache_hits = CreateObject<CounterCalculator<> >();
   m_requests_sent = CreateObject<CounterCalculator<> >();
-  m_replication_sent= CreateObject<CounterCalculator<> >();
+  m_replication_sent = CreateObject<CounterCalculator<> >();
   m_responses_sent = CreateObject<CounterCalculator<> >();
   m_num_timeouts = CreateObject<CounterCalculator<> >();
   m_success_timings = CreateObject<TimeMinMaxAvgTotalCalculator>();
@@ -140,8 +126,6 @@ void setupStats(uint32_t runNum, std::string input) {
   data.AddDataCalculator(m_success_timings);
   data.AddDataCalculator(m_response_timings);
 }
-
-
 
 void runWired() {
   Address serverAddress;
@@ -178,7 +162,9 @@ void runWired() {
   app.SetAttribute("cacheHitCallback", CallbackValue(MakeCallback(&cacheHitCB)));
   app.SetAttribute("requestSentCallback", CallbackValue(MakeCallback(&requestSentCB)));
   app.SetAttribute("responseSentCallback", CallbackValue(MakeCallback(&responseSentCB)));
-  app.SetAttribute("replicationRequestCallback", CallbackValue(MakeCallback(&replicationRequestCB)));
+  app.SetAttribute(
+      "replicationRequestCallback",
+      CallbackValue(MakeCallback(&replicationRequestCB)));
   app.SetAttribute("timeoutCallback", CallbackValue(MakeCallback(&requestTimeoutCB)));
   app.SetAttribute("responseReceivedCallback", CallbackValue(MakeCallback(&responseReceivedCB)));
   app.SetAttribute("lateResponseCallback", CallbackValue(MakeCallback(&lateResponseReceivedCB)));
@@ -241,7 +227,6 @@ int main(int argc, char* argv[]) {
     return 0;
   }
 
-
   // this will set a seed so that the same numbers are not generated each time.
   // the run number should be incremented each time this simulation is run to ensure streams do not
   // overlap
@@ -250,8 +235,8 @@ int main(int argc, char* argv[]) {
 
   setupStats(params.runNumber, std::string(params));
 
-  //runWired();
-  //return 0;
+  // runWired();
+  // return 0;
 
   // create node containers
   NodeContainer nodes;
@@ -313,8 +298,10 @@ int main(int argc, char* argv[]) {
   //     DoubleValue(41.7));
   wifiPhy.SetChannel(wifiChannel.Create());
 
-  wifiChannel.AddPropagationLoss("ns3::RangePropagationLossModel",
-            "MaxRange", DoubleValue(params.wifiRadius));
+  wifiChannel.AddPropagationLoss(
+      "ns3::RangePropagationLossModel",
+      "MaxRange",
+      DoubleValue(params.wifiRadius));
   wifiPhy.SetChannel(wifiChannel.Create());
 
   // set radio to ad hoc network mode? This seems to be needed
@@ -352,7 +339,9 @@ int main(int argc, char* argv[]) {
   app.SetAttribute("cacheHitCallback", CallbackValue(MakeCallback(&cacheHitCB)));
   app.SetAttribute("requestSentCallback", CallbackValue(MakeCallback(&requestSentCB)));
   app.SetAttribute("responseSentCallback", CallbackValue(MakeCallback(&responseSentCB)));
-  app.SetAttribute("replicationRequestCallback", CallbackValue(MakeCallback(&replicationRequestCB)));
+  app.SetAttribute(
+      "replicationRequestCallback",
+      CallbackValue(MakeCallback(&replicationRequestCB)));
   app.SetAttribute("timeoutCallback", CallbackValue(MakeCallback(&requestTimeoutCB)));
   app.SetAttribute("responseReceivedCallback", CallbackValue(MakeCallback(&responseReceivedCB)));
   app.SetAttribute("lateResponseCallback", CallbackValue(MakeCallback(&lateResponseReceivedCB)));
@@ -367,11 +356,11 @@ int main(int argc, char* argv[]) {
   // actually run the simulation
   // AnimationInterface anim( "animation-test.xml");
   // anim.SetMobilityPollInterval(Seconds(1));
-  //AnimationInterface anim(params.netanimTraceFilePath);
+  // AnimationInterface anim(params.netanimTraceFilePath);
 
-  //AsciiTraceHelper ascii;
-  //wifiPhy.EnableAsciiAll(ascii.CreateFileStream("saf.tr"));
-  //wifiPhy.EnablePcapAll("saf", false);
+  // AsciiTraceHelper ascii;
+  // wifiPhy.EnableAsciiAll(ascii.CreateFileStream("saf.tr"));
+  // wifiPhy.EnablePcapAll("saf", false);
 
   // actually run the simulation
   Simulator::Stop(params.runtime);

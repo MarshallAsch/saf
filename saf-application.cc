@@ -111,47 +111,49 @@ TypeId SafApplication::GetTypeId(void) {
               MakeDoubleAccessor(&SafApplication::m_standard_deviation),
               MakeDoubleChecker<double>())
           .AddAttribute(
-            "cacheHitCallback",
-            "a callback to be called when a data item is looked up but found in the local cache",
-            CallbackValue(),
-            MakeCallbackAccessor(&SafApplication::m_cacheHitCallback),
-            MakeCallbackChecker())
+              "cacheHitCallback",
+              "a callback to be called when a data item is looked up but found in the local cache",
+              CallbackValue(),
+              MakeCallbackAccessor(&SafApplication::m_cacheHitCallback),
+              MakeCallbackChecker())
           .AddAttribute(
-            "replicationRequestCallback",
-            "a callback to be called when the replication process sends a lookup request",
-            CallbackValue(),
-            MakeCallbackAccessor(&SafApplication::m_replicationRequestCallback),
-            MakeCallbackChecker())
+              "replicationRequestCallback",
+              "a callback to be called when the replication process sends a lookup request",
+              CallbackValue(),
+              MakeCallbackAccessor(&SafApplication::m_replicationRequestCallback),
+              MakeCallbackChecker())
           .AddAttribute(
-            "requestSentCallback",
-            "a callback to be called when a data item is requested from the nodes peers",
-            CallbackValue(),
-            MakeCallbackAccessor(&SafApplication::m_requestSentCallback),
-            MakeCallbackChecker())
+              "requestSentCallback",
+              "a callback to be called when a data item is requested from the nodes peers",
+              CallbackValue(),
+              MakeCallbackAccessor(&SafApplication::m_requestSentCallback),
+              MakeCallbackChecker())
           .AddAttribute(
-            "responseSentCallback",
-            "a callback to be called when a data item being sent to a remote peer",
-            CallbackValue(),
-            MakeCallbackAccessor(&SafApplication::m_responseSentCallback),
-            MakeCallbackChecker())
+              "responseSentCallback",
+              "a callback to be called when a data item being sent to a remote peer",
+              CallbackValue(),
+              MakeCallbackAccessor(&SafApplication::m_responseSentCallback),
+              MakeCallbackChecker())
           .AddAttribute(
-            "timeoutCallback",
-            "a callback to be called when a data request times out",
-            CallbackValue(),
-            MakeCallbackAccessor(&SafApplication::m_requestTimeoutCallback),
-            MakeCallbackChecker())
+              "timeoutCallback",
+              "a callback to be called when a data request times out",
+              CallbackValue(),
+              MakeCallbackAccessor(&SafApplication::m_requestTimeoutCallback),
+              MakeCallbackChecker())
           .AddAttribute(
-            "responseReceivedCallback",
-            "a callback to be called when a data item successfully received from a remote peer after a request",
-            CallbackValue(),
-            MakeCallbackAccessor(&SafApplication::m_responseReceivedCallback),
-            MakeCallbackChecker())
+              "responseReceivedCallback",
+              "a callback to be called when a data item successfully received from a remote peer "
+              "after a request",
+              CallbackValue(),
+              MakeCallbackAccessor(&SafApplication::m_responseReceivedCallback),
+              MakeCallbackChecker())
           .AddAttribute(
-            "lateResponseCallback",
-            "a callback to be called when a data item is received after it times out or if it has already been received",
-            CallbackValue(),
-            MakeCallbackAccessor(&SafApplication::m_lateResponseCallback),
-            MakeCallbackChecker())
+              "lateResponseCallback",
+              "a callback to be called when a data item is received after it times out or if it "
+              "has already been received",
+              CallbackValue(),
+              MakeCallbackAccessor(&SafApplication::m_lateResponseCallback),
+              MakeCallbackChecker())
           .AddTraceSource(
               "Tx",
               "A new packet is created and is sent",
@@ -190,8 +192,8 @@ SafApplication::SafApplication() {
   m_responseReceivedCallback = MakeNullCallback<void, uint16_t, uint32_t, ns3::Time>();
   m_lateResponseCallback = MakeNullCallback<void, uint16_t, uint32_t, ns3::Time>();
 
-  //m_origianal_data_items = 0;
-  //m_replica_data_items = 0;
+  // m_origianal_data_items = 0;
+  // m_replica_data_items = 0;
 }
 
 SafApplication::~SafApplication() {
@@ -200,8 +202,8 @@ SafApplication::~SafApplication() {
   m_socket_recv = 0;
   m_port = 0;
 
-  //delete[] m_origianal_data_items;
-  //delete[] m_replica_data_items;
+  // delete[] m_origianal_data_items;
+  // delete[] m_replica_data_items;
 
   m_origianal_space = 0;
   m_replica_space = 0;
@@ -225,8 +227,8 @@ void SafApplication::StartApplication(void) {
   // in the helper there is an assert to ensure this is valid when not in optimized builds
   m_origianal_space = m_total_data_items / m_total_num_nodes;
 
-  //m_origianal_data_items = std::vector<Data>(m_origianal_space);
-  //m_replica_data_items = std::vector<Data>(m_replica_space);
+  // m_origianal_data_items = std::vector<Data>(m_origianal_space);
+  // m_replica_data_items = std::vector<Data>(m_replica_space);
   m_access_frequencies = std::vector<std::vector<uint16_t> >(m_total_data_items);
 
   if (m_socket_recv == 0) {
@@ -454,11 +456,13 @@ void SafApplication::HandleResponse(Ptr<Socket> socket) {
 
       if (dataID == *it) {
         m_pending_lookups.erase(*it);
-        if (!m_responseReceivedCallback.IsNull()) m_responseReceivedCallback(dataID, GetNode()->GetId(), diff);
+        if (!m_responseReceivedCallback.IsNull())
+          m_responseReceivedCallback(dataID, GetNode()->GetId(), diff);
         // log successful request
       } else {
         // log successful request, already gotten or late
-        if (!m_lateResponseCallback.IsNull()) m_lateResponseCallback(dataID, GetNode()->GetId(), diff);
+        if (!m_lateResponseCallback.IsNull())
+          m_lateResponseCallback(dataID, GetNode()->GetId(), diff);
       }
 
       NS_LOG_LOGIC("TODO: Mark cache miss, mark lookup success, remove from pending reponse list");
@@ -496,8 +500,10 @@ void SafApplication::SaveDataItem(Data data) {
 
   bool found = false;
   bool stored = false;
-  //int firstFree = -1;
-  for (std::vector<Data>::iterator it = m_replica_data_items.begin() ; it != m_replica_data_items.end(); ++it) {
+  // int firstFree = -1;
+  for (std::vector<Data>::iterator it = m_replica_data_items.begin();
+       it != m_replica_data_items.end();
+       ++it) {
     if (!found && m_access_frequencies[it - m_replica_data_items.begin()][0] == data.GetDataID()) {
       found = true;
     }
@@ -505,7 +511,7 @@ void SafApplication::SaveDataItem(Data data) {
     if (!stored && (*it).GetDataID() == data.GetDataID()) {
       stored = true;
     }
-	}
+  }
   if (!found || stored) {
     NS_LOG_INFO("data: " << data.GetDataID() << " Is not being saved");
   }
@@ -515,7 +521,7 @@ void SafApplication::SaveDataItem(Data data) {
   }
 
   // unless there are too many data items being stored this value will never be out of bounds
-  //m_replica_data_items[firstFree] = data;
+  // m_replica_data_items[firstFree] = data;
 }
 
 Data SafApplication::GetDataItem(uint16_t dataID) {
@@ -527,12 +533,14 @@ Data SafApplication::GetDataItem(uint16_t dataID) {
     }
   }
 
-  for (std::vector<Data>::iterator it = m_replica_data_items.begin() ; it != m_replica_data_items.end(); ++it) {
+  for (std::vector<Data>::iterator it = m_replica_data_items.begin();
+       it != m_replica_data_items.end();
+       ++it) {
     if ((*it).GetDataID() == dataID) {
       // m_replica_data_items[i].AccessData(); // increase access frequency
       return (*it);
     }
-	}
+  }
 
   return Data();
 }
@@ -550,7 +558,7 @@ void SafApplication::AskPeers(uint16_t dataID) {
   m_txTrace(p);
   m_txTraceWithAddresses(p, localAddress, InetSocketAddress(Ipv4Address::GetBroadcast(), m_port));
 
-  if (!m_requestSentCallback.IsNull())  m_requestSentCallback(dataID, GetNode()->GetId());
+  if (!m_requestSentCallback.IsNull()) m_requestSentCallback(dataID, GetNode()->GetId());
   m_socket_send->Send(p);
   m_sent++;
 
@@ -586,7 +594,9 @@ void SafApplication::RunReplication() {
   // check to see which items are not yet found, and request them if necessary
   for (uint16_t i = 0; i < m_replica_space; i++) {
     bool found = false;
-    for (std::vector<Data>::iterator it = m_replica_data_items.begin() ; it != m_replica_data_items.end(); ++it) {
+    for (std::vector<Data>::iterator it = m_replica_data_items.begin();
+         it != m_replica_data_items.end();
+         ++it) {
       if ((*it).GetStatus() == DataStatus::stored &&
           (*it).GetDataID() == m_access_frequencies[i][0]) {
         found = true;
@@ -595,7 +605,8 @@ void SafApplication::RunReplication() {
     }
 
     if (!found) {
-      if (!m_replicationRequestCallback.IsNull())  m_replicationRequestCallback(m_access_frequencies[i][0], GetNode()->GetId());
+      if (!m_replicationRequestCallback.IsNull())
+        m_replicationRequestCallback(m_access_frequencies[i][0], GetNode()->GetId());
       AskPeers(m_access_frequencies[i][0]);
     }
   }

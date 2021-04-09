@@ -92,21 +92,25 @@ class SimulationParameters {
   ///
   static std::pair<SimulationParameters, bool> parse(int argc, char* argv[]);
 
-  //std::ostream& operator<<(std::ostream &strm, const SimulationParameters &param);
+  // std::ostream& operator<<(std::ostream &strm, const SimulationParameters &param);
 
   operator std::string() const {
+    std::string routingStr = routingProtocol == RoutingType::DSDV   ? "DSDV"
+                             : routingProtocol == RoutingType::AODV ? "AODV"
+                                                                    : "UNKNOWN";
 
-    std::string routingStr = routingProtocol == RoutingType::DSDV ? "DSDV" : routingProtocol == RoutingType::AODV ? "AODV": "UNKNOWN";
-
-    return "params::{ seed: " + std::to_string(seed) +  ", runNum: " + std::to_string(runNumber) +
-           ", runTime: " + std::to_string(runtime.GetMilliSeconds()) + "ms, startUpDelay: " +
-           std::to_string(startupDelay.GetMilliSeconds()) + "ms, numNodes: " + std::to_string(totalNodes) +
-           ", numData: " + std::to_string(totalDataItems) + ", requestTimeout: " +
-           std::to_string(requestTimeout.GetMilliSeconds()) + "ms, relocationPeriod: " +
-           std::to_string(relocationPeriod.GetMilliSeconds()) + "ms, speed: TODO, pauseTime: TODO, replicaSpace: " +
-           std::to_string(replicaSpace) + ", dataSize: " + std::to_string(dataSize) + ", accessFrequency: " +
-           std::to_string(accessFrequencyType) + ", sd: " + std::to_string(standardDeviation) + ", routingProtocol: " +
-           routingStr + ", wifiRange: " + std::to_string(wifiRadius) + "m }";
+    return "params::{ seed: " + std::to_string(seed) + ", runNum: " + std::to_string(runNumber) +
+           ", runTime: " + std::to_string(runtime.GetMilliSeconds()) +
+           "ms, startUpDelay: " + std::to_string(startupDelay.GetMilliSeconds()) +
+           "ms, numNodes: " + std::to_string(totalNodes) +
+           ", numData: " + std::to_string(totalDataItems) +
+           ", requestTimeout: " + std::to_string(requestTimeout.GetMilliSeconds()) +
+           "ms, relocationPeriod: " + std::to_string(relocationPeriod.GetMilliSeconds()) +
+           "ms, speed: TODO, pauseTime: TODO, replicaSpace: " + std::to_string(replicaSpace) +
+           ", dataSize: " + std::to_string(dataSize) +
+           ", accessFrequency: " + std::to_string(accessFrequencyType) +
+           ", sd: " + std::to_string(standardDeviation) + ", routingProtocol: " + routingStr +
+           ", wifiRange: " + std::to_string(wifiRadius) + "m }";
   }
 };
 
