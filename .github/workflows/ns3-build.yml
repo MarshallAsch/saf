@@ -10,7 +10,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: ns3 build
-      uses: marshallasch/ns3-action@V0.3
+      uses: marshallasch/ns3-action@V0.4
       with:
-        sim_name: 'saf'
         sim_args: '--run-time=900 --total-nodes=5'

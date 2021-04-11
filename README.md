@@ -1,4 +1,5 @@
-![GitHub Workflow Status (branch)](https://img.shields.io/github/workflow/status/marshallasch/saf/Clang-format/main)
+![Code linter on main](https://img.shields.io/github/workflow/status/marshallasch/saf/Clang-format/main?style=plastic)
+![Code linter on main](https://img.shields.io/github/workflow/status/marshallasch/saf/build-ns3/main?style=plastic)
 ![GitHub](https://img.shields.io/github/license/marshallasch/saf?style=plastic)
 ![Lines of code](https://img.shields.io/tokei/lines/github/marshallasch/saf?style=plastic)
 ![NS3 version](https://img.shields.io/badge/NS--3-3.32-blueviolet?style=plastic)
