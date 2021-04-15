@@ -114,9 +114,9 @@ void lookup_rcv_CB(uint16_t dataID, uint32_t nodeID) { m_lookup_rcv->Update(); }
 
 void lookup_rsp_sent_CB(uint16_t dataID, uint32_t nodeID) { m_lookup_rsp_sent->Update(); }
 
-void lookup_timeout_CB(uint16_t dataID, uint32_t nodeID) { m_lookup_timeout->Update(); }
+void lookup_timeout_CB(uint32_t requestID, uint32_t nodeID) { m_lookup_timeout->Update(); }
 
-void realloc_timeout_CB(uint16_t dataID, uint32_t nodeID) { m_realloc_timeout->Update(); }
+void realloc_timeout_CB(uint32_t requestID, uint32_t nodeID) { m_realloc_timeout->Update(); }
 
 void realloc_sent_CB(uint16_t dataID, uint32_t nodeID) { m_realloc_sent->Update(); }
 
@@ -342,6 +342,15 @@ int main(int argc, char* argv[]) {
   app.SetAttribute("lookup_late_CB", CallbackValue(MakeCallback(&lookup_late_CB)));
   app.SetAttribute("realloc_ontime_CB", CallbackValue(MakeCallback(&realloc_ontime_CB)));
   app.SetAttribute("realloc_late_CB", CallbackValue(MakeCallback(&realloc_late_CB)));
+
+  app.SetAttribute("NumNodes", UintegerValue(params.totalNodes));
+  app.SetAttribute("TotalDataItems", UintegerValue(params.totalDataItems));
+  app.SetAttribute("RequestTimeout", TimeValue(params.requestTimeout));
+  app.SetAttribute("ReallocationPeriod", TimeValue(params.relocationPeriod));
+  app.SetAttribute("DataSize", UintegerValue(params.dataSize));
+  app.SetAttribute("accessFrequencyMode", UintegerValue(params.accessFrequencyType));
+  app.SetAttribute("standardDeviation", DoubleValue(params.standardDeviation));
+  app.SetAttribute("StorageSpace", UintegerValue(params.replicaSpace));
 
   ApplicationContainer apps = app.Install(nodes);
 

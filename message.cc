@@ -45,6 +45,8 @@ Message::Message() {
 
 Message::~Message() { m_requested_at = 0; }
 
+uint32_t Message::getRequestID() { return m_request_id; }
+
 std::vector<uint8_t> Message::GeneratePayload() { return std::vector<uint8_t>(0); }
 
 Ptr<Packet> Message::ToPacket() {

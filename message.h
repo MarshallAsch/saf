@@ -33,7 +33,10 @@ class Message {
  public:
   Message();
   ~Message();
+
   Ptr<Packet> ToPacket();
+
+  uint32_t getRequestID();
 };
 
 class LookupMessage : public Message {

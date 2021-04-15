@@ -228,8 +228,8 @@ SafApplication::SafApplication() {
   m_lookup_sent_CB = MakeNullCallback<void, uint16_t, uint32_t>();
   m_lookup_rcv_CB = MakeNullCallback<void, uint16_t, uint32_t>();
   m_lookup_rsp_sent_CB = MakeNullCallback<void, uint16_t, uint32_t>();
-  m_lookup_timeout_CB = MakeNullCallback<void, uint16_t, uint32_t>();
-  m_realloc_timeout_CB = MakeNullCallback<void, uint16_t, uint32_t>();
+  m_lookup_timeout_CB = MakeNullCallback<void, uint32_t, uint32_t>();
+  m_realloc_timeout_CB = MakeNullCallback<void, uint32_t, uint32_t>();
   m_realloc_sent_CB = MakeNullCallback<void, uint16_t, uint32_t>();
   m_realloc_rcv_CB = MakeNullCallback<void, uint16_t, uint32_t>();
   m_realloc_rsp_sent_CB = MakeNullCallback<void, uint16_t, uint32_t>();
@@ -337,16 +337,16 @@ void SafApplication::StopApplication() {
   }
 
   // check to see if it is still in the pending lookup list
-  for (std::set<uint16_t>::iterator it = m_pending_lookups.begin(); it != m_pending_lookups.end();
+  for (std::set<uint32_t>::iterator it = m_pending_lookups.begin(); it != m_pending_lookups.end();
        it++) {
-    NS_LOG_INFO("TODO: sim ended before application request for " << *it << " timed out");
+    NS_LOG_INFO("TODO: sim ended before application request ID " << *it << " timed out");
   }
 
   // check to see if it is still in the pending lookup list
-  for (std::set<uint16_t>::iterator it = m_pending_reallocations.begin();
+  for (std::set<uint32_t>::iterator it = m_pending_reallocations.begin();
        it != m_pending_reallocations.end();
        it++) {
-    NS_LOG_INFO("TODO: sim ended before reallocation request for " << *it << " timed out");
+    NS_LOG_INFO("TODO: sim ended before reallocation request ID " << *it << " timed out");
   }
 
   Simulator::Cancel(m_reallocation_event);
@@ -497,12 +497,13 @@ void SafApplication::HandleResponse(Ptr<Socket> socket) {
       NS_LOG_INFO("handling data received");
       uint16_t dataID;
       uint32_t dataSize;
+      uint32_t origID;
       uint64_t askTime;
       bool isReplication;
 
       memcpy(&dataSize, &payload[1], sizeof(dataSize));
       memcpy(&askTime, &payload[22], sizeof(askTime));
-      memcpy(&dataID, &payload[30], sizeof(dataID));
+      memcpy(&origID, &payload[9], sizeof(origID));
       memcpy(&dataID, &payload[30], sizeof(dataID));
       isReplication = payload[32];
       dataSize -= (sizeof(dataID) - 1);
@@ -512,12 +513,13 @@ void SafApplication::HandleResponse(Ptr<Socket> socket) {
       SaveDataItem(item);
 
       // remove from pending request list
-      std::set<uint16_t>::iterator it = m_pending_lookups.find(dataID);
+      std::set<uint32_t>::iterator it;
       Time diff = Simulator::Now() - Time::FromInteger(askTime, Time::Unit::MS);
 
       if (isReplication) {
-        if (dataID == *it) {
-          m_pending_reallocations.erase(*it);
+        it = m_pending_reallocations.find(origID);
+        if (it != m_pending_reallocations.end()) {
+          m_pending_reallocations.erase(it);
           if (!m_realloc_ontime_CB.IsNull()) m_realloc_ontime_CB(dataID, GetNode()->GetId(), diff);
           // log successful request
         } else {
@@ -525,8 +527,9 @@ void SafApplication::HandleResponse(Ptr<Socket> socket) {
           if (!m_realloc_late_CB.IsNull()) m_realloc_late_CB(dataID, GetNode()->GetId(), diff);
         }
       } else {
-        if (dataID == *it) {
-          m_pending_lookups.erase(*it);
+        it = m_pending_lookups.find(origID);
+        if (it != m_pending_lookups.end()) {
+          m_pending_lookups.erase(it);
           if (!m_lookup_ontime_CB.IsNull()) m_lookup_ontime_CB(dataID, GetNode()->GetId(), diff);
           // log successful request
         } else {
@@ -624,20 +627,22 @@ void SafApplication::AskPeers(uint16_t dataID, bool isReplication) {
   // number of recipients
 
   if (isReplication) {
-    m_pending_reallocations.insert(dataID);  // add to pending list
+    m_pending_reallocations.insert(m.getRequestID());  // add to pending list
     // stats for reallocation
     if (!m_realloc_sent_CB.IsNull()) m_realloc_sent_CB(dataID, GetNode()->GetId());
 
     if (Simulator::Now() + m_request_timeout < m_stopTime) {
-      Simulator::Schedule(m_request_timeout, &SafApplication::ReallocationTimeout, this, dataID);
+      Simulator::
+          Schedule(m_request_timeout, &SafApplication::ReallocationTimeout, this, m.getRequestID());
     }
   } else {
-    m_pending_lookups.insert(dataID);  // add to pending list
+    m_pending_lookups.insert(m.getRequestID());  // add to pending list
     // stats for 'normal lookup'
     if (!m_lookup_sent_CB.IsNull()) m_lookup_sent_CB(dataID, GetNode()->GetId());
 
     if (Simulator::Now() + m_request_timeout < m_stopTime) {
-      Simulator::Schedule(m_request_timeout, &SafApplication::LookupTimeout, this, dataID);
+      Simulator::
+          Schedule(m_request_timeout, &SafApplication::LookupTimeout, this, m.getRequestID());
     }
   }
 
@@ -647,27 +652,27 @@ void SafApplication::AskPeers(uint16_t dataID, bool isReplication) {
   NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s sent request for " << dataID);
 }
 
-void SafApplication::LookupTimeout(uint16_t dataID) {
+void SafApplication::LookupTimeout(uint32_t requestID) {
   NS_LOG_FUNCTION(this);
 
   // check to see if it is still in the pending lookup list
-  std::set<uint16_t>::iterator item = m_pending_lookups.find(dataID);
+  std::set<uint32_t>::iterator item = m_pending_lookups.find(requestID);
 
-  if (dataID == *item) {
-    if (!m_lookup_timeout_CB.IsNull()) m_lookup_timeout_CB(dataID, GetNode()->GetId());
-    m_pending_lookups.erase(dataID);
+  if (item != m_pending_lookups.end()) {
+    if (!m_lookup_timeout_CB.IsNull()) m_lookup_timeout_CB(requestID, GetNode()->GetId());
+    m_pending_lookups.erase(item);
   }
 }
 
-void SafApplication::ReallocationTimeout(uint16_t dataID) {
+void SafApplication::ReallocationTimeout(uint32_t requestID) {
   NS_LOG_FUNCTION(this);
 
   // check to see if it is still in the pending lookup list
-  std::set<uint16_t>::iterator item = m_pending_reallocations.find(dataID);
+  std::set<uint32_t>::iterator item = m_pending_reallocations.find(requestID);
 
-  if (dataID == *item) {
-    if (!m_realloc_timeout_CB.IsNull()) m_realloc_timeout_CB(dataID, GetNode()->GetId());
-    m_pending_reallocations.erase(dataID);
+  if (item != m_pending_reallocations.end()) {
+    if (!m_realloc_timeout_CB.IsNull()) m_realloc_timeout_CB(requestID, GetNode()->GetId());
+    m_pending_reallocations.erase(item);
   }
 }
 

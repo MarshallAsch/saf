@@ -132,8 +132,8 @@ class SafApplication : public Application {
   std::vector<Data> m_origianal_data_items;  // the block of memory to hold the originals data items
 
   std::vector<std::vector<uint16_t> > m_access_frequencies;
-  std::set<uint16_t> m_pending_lookups;
-  std::set<uint16_t> m_pending_reallocations;
+  std::set<uint32_t> m_pending_lookups;
+  std::set<uint32_t> m_pending_reallocations;
 
   // uint16_t* m_access_frequencies; // since the access frequencies are static and known for all
   // data items
@@ -157,9 +157,9 @@ class SafApplication : public Application {
 
   Data GetDataItem(uint16_t dataID);
 
-  void LookupTimeout(uint16_t dataID);
+  void LookupTimeout(uint32_t requestID);
 
-  void ReallocationTimeout(uint16_t dataID);
+  void ReallocationTimeout(uint32_t requestID);
 
   void RunReplication();
 
@@ -183,8 +183,8 @@ class SafApplication : public Application {
   Callback<void, uint16_t, uint32_t> m_lookup_sent_CB;
   Callback<void, uint16_t, uint32_t> m_lookup_rcv_CB;
   Callback<void, uint16_t, uint32_t> m_lookup_rsp_sent_CB;
-  Callback<void, uint16_t, uint32_t> m_lookup_timeout_CB;
-  Callback<void, uint16_t, uint32_t> m_realloc_timeout_CB;
+  Callback<void, uint32_t, uint32_t> m_lookup_timeout_CB;
+  Callback<void, uint32_t, uint32_t> m_realloc_timeout_CB;
   Callback<void, uint16_t, uint32_t> m_realloc_sent_CB;
   Callback<void, uint16_t, uint32_t> m_realloc_rcv_CB;
   Callback<void, uint16_t, uint32_t> m_realloc_rsp_sent_CB;
