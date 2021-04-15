@@ -1,0 +1,15 @@
+# Run build-ns3
+name: build-ns3
+
+on: [push, pull_request]
+
+jobs:
+  build-on-ns3:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: ns3 build
+      uses: marshallasch/ns3-action@V0.7.1
+      with:
+        sim_args: '--run-time=900 --total-nodes=5'

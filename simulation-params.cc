@@ -278,11 +278,9 @@ std::ostream& operator<<(std::ostream &strm, const SimulationParameters &param) 
   param.requestTimeout.GetMilliSeconds() << "ms, relocationPeriod: " <<
   param.relocationPeriod.GetMilliSeconds() << "ms, speed: " << param.speed << ", pauseTime: " <<
   param.pause << ", replicaSpace: " << param.replicaSpace << ", dataSize: " << param.dataSize <<
-  ", accessFrequency: " << param.accessFrequencyType << ", sd: " << param.standardDeviation << ", routingProtocol: " <<
-  param.routingProtocol << ", wifiRange: " << param.wifiRadius << "m }";
+  ", accessFrequency: " << param.accessFrequencyType << ", sd: " << param.standardDeviation << ",
+routingProtocol: " << param.routingProtocol << ", wifiRange: " << param.wifiRadius << "m }";
 }
 */
-
-
 
 }  // namespace saf

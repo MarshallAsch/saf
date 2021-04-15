@@ -19,21 +19,21 @@
 #ifndef SAF_APPLICATION_H
 #define SAF_APPLICATION_H
 
+#include <set>     // std::set
+#include <vector>  // std::vector
 #include "data.h"
 #include "ns3/application.h"
 #include "ns3/basic-data-calculators.h"
+#include "ns3/callback.h"
 #include "ns3/data-collector.h"
 #include "ns3/event-id.h"
 #include "ns3/ipv4-address.h"
+#include "ns3/object.h"
 #include "ns3/ptr.h"
 #include "ns3/random-variable-stream.h"
 #include "ns3/socket.h"
 #include "ns3/time-data-calculators.h"
 #include "ns3/traced-callback.h"
-#include "ns3/callback.h"
-#include "ns3/object.h"
-#include <set>     // std::set
-#include <vector>  // std::vector
 
 namespace saf {
 using namespace ns3;
