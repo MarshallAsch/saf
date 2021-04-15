@@ -44,8 +44,6 @@
 namespace saf {
 using namespace ns3;
 
-// NS_LOG_COMPONENT_DEFINE("SafApplication");
-
 NS_OBJECT_ENSURE_REGISTERED(SafApplication);
 
 bool AccessFrequencyComparator(std::vector<uint16_t> i, std::vector<uint16_t> j);
@@ -111,47 +109,91 @@ TypeId SafApplication::GetTypeId(void) {
               MakeDoubleAccessor(&SafApplication::m_standard_deviation),
               MakeDoubleChecker<double>())
           .AddAttribute(
-            "cacheHitCallback",
-            "a callback to be called when a data item is looked up but found in the local cache",
-            CallbackValue(),
-            MakeCallbackAccessor(&SafApplication::m_cacheHitCallback),
-            MakeCallbackChecker())
+              "cache_hit_CB",
+              "a callback to be called when a data item is looked up but found in the local cache",
+              CallbackValue(),
+              MakeCallbackAccessor(&SafApplication::m_cache_hit_CB),
+              MakeCallbackChecker())
           .AddAttribute(
-            "replicationRequestCallback",
-            "a callback to be called when the replication process sends a lookup request",
-            CallbackValue(),
-            MakeCallbackAccessor(&SafApplication::m_replicationRequestCallback),
-            MakeCallbackChecker())
+              "lookup_sent_CB",
+              "a callback to be called when the application sends a lookup request",
+              CallbackValue(),
+              MakeCallbackAccessor(&SafApplication::m_lookup_sent_CB),
+              MakeCallbackChecker())
           .AddAttribute(
-            "requestSentCallback",
-            "a callback to be called when a data item is requested from the nodes peers",
-            CallbackValue(),
-            MakeCallbackAccessor(&SafApplication::m_requestSentCallback),
-            MakeCallbackChecker())
+              "lookup_rcv_CB",
+              "a callback to be called when a data item is requested from the nodes peer only "
+              "application requests",
+              CallbackValue(),
+              MakeCallbackAccessor(&SafApplication::m_lookup_rcv_CB),
+              MakeCallbackChecker())
           .AddAttribute(
-            "responseSentCallback",
-            "a callback to be called when a data item being sent to a remote peer",
-            CallbackValue(),
-            MakeCallbackAccessor(&SafApplication::m_responseSentCallback),
-            MakeCallbackChecker())
+              "lookup_rsp_sent_CB",
+              "a callback to be called when a data item being sent to a remote peer only for "
+              "application lookups",
+              CallbackValue(),
+              MakeCallbackAccessor(&SafApplication::m_lookup_rsp_sent_CB),
+              MakeCallbackChecker())
           .AddAttribute(
-            "timeoutCallback",
-            "a callback to be called when a data request times out",
-            CallbackValue(),
-            MakeCallbackAccessor(&SafApplication::m_requestTimeoutCallback),
-            MakeCallbackChecker())
+              "lookup_timeout_CB",
+              "a callback to be called when the application data lookup request times out",
+              CallbackValue(),
+              MakeCallbackAccessor(&SafApplication::m_lookup_timeout_CB),
+              MakeCallbackChecker())
           .AddAttribute(
-            "responseReceivedCallback",
-            "a callback to be called when a data item successfully received from a remote peer after a request",
-            CallbackValue(),
-            MakeCallbackAccessor(&SafApplication::m_responseReceivedCallback),
-            MakeCallbackChecker())
+              "realloc_timeout_CB",
+              "a callback to be called when the reallocation data lookup request times out",
+              CallbackValue(),
+              MakeCallbackAccessor(&SafApplication::m_realloc_timeout_CB),
+              MakeCallbackChecker())
           .AddAttribute(
-            "lateResponseCallback",
-            "a callback to be called when a data item is received after it times out or if it has already been received",
-            CallbackValue(),
-            MakeCallbackAccessor(&SafApplication::m_lateResponseCallback),
-            MakeCallbackChecker())
+              "realloc_sent_CB",
+              "a callback to be called when the reallocation proccess sends a lookup request",
+              CallbackValue(),
+              MakeCallbackAccessor(&SafApplication::m_realloc_sent_CB),
+              MakeCallbackChecker())
+          .AddAttribute(
+              "realloc_rcv_CB",
+              "a callback to be called when a data item being requested by a remote peer only for "
+              "reallocation lookups",
+              CallbackValue(),
+              MakeCallbackAccessor(&SafApplication::m_realloc_rcv_CB),
+              MakeCallbackChecker())
+          .AddAttribute(
+              "realloc_rsp_sent_CB",
+              "a callback to be called when a data item being sent to a remote peer only for "
+              "reallocation lookups",
+              CallbackValue(),
+              MakeCallbackAccessor(&SafApplication::m_realloc_rsp_sent_CB),
+              MakeCallbackChecker())
+          .AddAttribute(
+              "lookup_ontime_CB",
+              "a callback to be called when a data item requested by the application is received "
+              "before the timeout event",
+              CallbackValue(),
+              MakeCallbackAccessor(&SafApplication::m_lookup_ontime_CB),
+              MakeCallbackChecker())
+          .AddAttribute(
+              "lookup_late_CB",
+              "a callback to be called when a data item requested by the application is received "
+              "after the timeout event",
+              CallbackValue(),
+              MakeCallbackAccessor(&SafApplication::m_lookup_late_CB),
+              MakeCallbackChecker())
+          .AddAttribute(
+              "realloc_ontime_CB",
+              "a callback to be called when a data item requested by the reallocation proccess is "
+              "received before the timeout event",
+              CallbackValue(),
+              MakeCallbackAccessor(&SafApplication::m_realloc_ontime_CB),
+              MakeCallbackChecker())
+          .AddAttribute(
+              "realloc_late_CB",
+              "a callback to be called when a data item requested by the reallocation proccess is "
+              "received after the timeout event",
+              CallbackValue(),
+              MakeCallbackAccessor(&SafApplication::m_realloc_late_CB),
+              MakeCallbackChecker())
           .AddTraceSource(
               "Tx",
               "A new packet is created and is sent",
@@ -182,16 +224,20 @@ SafApplication::SafApplication() {
   m_socket_recv = 0;
   m_running = false;
 
-  m_cacheHitCallback = MakeNullCallback<void, uint16_t, uint32_t>();
-  m_replicationRequestCallback = MakeNullCallback<void, uint16_t, uint32_t>();
-  m_requestSentCallback = MakeNullCallback<void, uint16_t, uint32_t>();
-  m_responseSentCallback = MakeNullCallback<void, uint16_t, uint32_t>();
-  m_requestTimeoutCallback = MakeNullCallback<void, uint16_t, uint32_t>();
-  m_responseReceivedCallback = MakeNullCallback<void, uint16_t, uint32_t, ns3::Time>();
-  m_lateResponseCallback = MakeNullCallback<void, uint16_t, uint32_t, ns3::Time>();
+  m_cache_hit_CB = MakeNullCallback<void, uint16_t, uint32_t>();
+  m_lookup_sent_CB = MakeNullCallback<void, uint16_t, uint32_t>();
+  m_lookup_rcv_CB = MakeNullCallback<void, uint16_t, uint32_t>();
+  m_lookup_rsp_sent_CB = MakeNullCallback<void, uint16_t, uint32_t>();
+  m_lookup_timeout_CB = MakeNullCallback<void, uint16_t, uint32_t>();
+  m_realloc_timeout_CB = MakeNullCallback<void, uint16_t, uint32_t>();
+  m_realloc_sent_CB = MakeNullCallback<void, uint16_t, uint32_t>();
+  m_realloc_rcv_CB = MakeNullCallback<void, uint16_t, uint32_t>();
+  m_realloc_rsp_sent_CB = MakeNullCallback<void, uint16_t, uint32_t>();
 
-  //m_origianal_data_items = 0;
-  //m_replica_data_items = 0;
+  m_lookup_ontime_CB = MakeNullCallback<void, uint16_t, uint32_t, ns3::Time>();
+  m_lookup_late_CB = MakeNullCallback<void, uint16_t, uint32_t, ns3::Time>();
+  m_realloc_ontime_CB = MakeNullCallback<void, uint16_t, uint32_t, ns3::Time>();
+  m_realloc_late_CB = MakeNullCallback<void, uint16_t, uint32_t, ns3::Time>();
 }
 
 SafApplication::~SafApplication() {
@@ -199,9 +245,6 @@ SafApplication::~SafApplication() {
   m_socket_send = 0;
   m_socket_recv = 0;
   m_port = 0;
-
-  //delete[] m_origianal_data_items;
-  //delete[] m_replica_data_items;
 
   m_origianal_space = 0;
   m_replica_space = 0;
@@ -225,8 +268,8 @@ void SafApplication::StartApplication(void) {
   // in the helper there is an assert to ensure this is valid when not in optimized builds
   m_origianal_space = m_total_data_items / m_total_num_nodes;
 
-  //m_origianal_data_items = std::vector<Data>(m_origianal_space);
-  //m_replica_data_items = std::vector<Data>(m_replica_space);
+  // m_origianal_data_items = std::vector<Data>(m_origianal_space);
+  // m_replica_data_items = std::vector<Data>(m_replica_space);
   m_access_frequencies = std::vector<std::vector<uint16_t> >(m_total_data_items);
 
   if (m_socket_recv == 0) {
@@ -296,7 +339,14 @@ void SafApplication::StopApplication() {
   // check to see if it is still in the pending lookup list
   for (std::set<uint16_t>::iterator it = m_pending_lookups.begin(); it != m_pending_lookups.end();
        it++) {
-    NS_LOG_INFO("TODO: sim ended before request for " << *it << " timed out");
+    NS_LOG_INFO("TODO: sim ended before application request for " << *it << " timed out");
+  }
+
+  // check to see if it is still in the pending lookup list
+  for (std::set<uint16_t>::iterator it = m_pending_reallocations.begin();
+       it != m_pending_reallocations.end();
+       it++) {
+    NS_LOG_INFO("TODO: sim ended before reallocation request for " << *it << " timed out");
   }
 
   Simulator::Cancel(m_reallocation_event);
@@ -370,12 +420,15 @@ void SafApplication::HandleRequest(Ptr<Socket> socket) {
       uint32_t requestID;
       uint64_t sentAt;
       uint16_t dataID;
+      bool isReplication;
       memcpy(&requestID, &payload[5], sizeof(requestID));
       memcpy(&sentAt, &payload[14], sizeof(sentAt));
       memcpy(&dataID, &payload[30], sizeof(dataID));
+      isReplication = payload[32];
 
       delete[] payload;
 
+      // Keeping this for the eventual debug purpose when I wonder why the data is not working
       // std::cout << "-----------------------\n";
       // std::cout << "sent at: " << sentAt << "\n";
       // std::cout << "req dataID: " << dataID << "\n";
@@ -386,6 +439,13 @@ void SafApplication::HandleRequest(Ptr<Socket> socket) {
       // }
       // std::cout << "\n";
 
+      // mark that the lookup request was received, this is to be able to detect collisions
+      if (isReplication) {
+        if (!m_realloc_rcv_CB.IsNull()) m_realloc_rcv_CB(dataID, GetNode()->GetId());
+      } else {
+        if (!m_lookup_rcv_CB.IsNull()) m_lookup_rcv_CB(dataID, GetNode()->GetId());
+      }
+
       Data item = GetDataItem(dataID);
       if (item.GetStatus() != DataStatus::stored) {
         NS_LOG_INFO("Data item not found, not sending response");
@@ -394,14 +454,15 @@ void SafApplication::HandleRequest(Ptr<Socket> socket) {
 
       NS_LOG_INFO("sending response");
       // generate and send response
-      ResponseMessage r = ResponseMessage(requestID, sentAt, item);
-      NS_LOG_INFO("made obj packet");
-
+      ResponseMessage r = ResponseMessage(requestID, sentAt, isReplication, item);
       Ptr<Packet> responsePacket = r.ToPacket();
 
-      NS_LOG_INFO("generated packet");
+      if (isReplication) {
+        if (!m_realloc_rsp_sent_CB.IsNull()) m_realloc_rsp_sent_CB(dataID, GetNode()->GetId());
+      } else {
+        if (!m_lookup_rsp_sent_CB.IsNull()) m_lookup_rsp_sent_CB(dataID, GetNode()->GetId());
+      }
 
-      if (!m_responseSentCallback.IsNull()) m_responseSentCallback(dataID, GetNode()->GetId());
       socket->SendTo(responsePacket, 0, from);
       NS_LOG_INFO("sent packet");
     }
@@ -437,12 +498,14 @@ void SafApplication::HandleResponse(Ptr<Socket> socket) {
       uint16_t dataID;
       uint32_t dataSize;
       uint64_t askTime;
+      bool isReplication;
 
       memcpy(&dataSize, &payload[1], sizeof(dataSize));
       memcpy(&askTime, &payload[22], sizeof(askTime));
       memcpy(&dataID, &payload[30], sizeof(dataID));
       memcpy(&dataID, &payload[30], sizeof(dataID));
-      dataSize -= (sizeof(dataID));
+      isReplication = payload[32];
+      dataSize -= (sizeof(dataID) - 1);
       delete[] payload;
 
       Data item = Data(dataID, dataSize);
@@ -452,13 +515,24 @@ void SafApplication::HandleResponse(Ptr<Socket> socket) {
       std::set<uint16_t>::iterator it = m_pending_lookups.find(dataID);
       Time diff = Simulator::Now() - Time::FromInteger(askTime, Time::Unit::MS);
 
-      if (dataID == *it) {
-        m_pending_lookups.erase(*it);
-        if (!m_responseReceivedCallback.IsNull()) m_responseReceivedCallback(dataID, GetNode()->GetId(), diff);
-        // log successful request
+      if (isReplication) {
+        if (dataID == *it) {
+          m_pending_reallocations.erase(*it);
+          if (!m_realloc_ontime_CB.IsNull()) m_realloc_ontime_CB(dataID, GetNode()->GetId(), diff);
+          // log successful request
+        } else {
+          // log successful request, already gotten or late
+          if (!m_realloc_late_CB.IsNull()) m_realloc_late_CB(dataID, GetNode()->GetId(), diff);
+        }
       } else {
-        // log successful request, already gotten or late
-        if (!m_lateResponseCallback.IsNull()) m_lateResponseCallback(dataID, GetNode()->GetId(), diff);
+        if (dataID == *it) {
+          m_pending_lookups.erase(*it);
+          if (!m_lookup_ontime_CB.IsNull()) m_lookup_ontime_CB(dataID, GetNode()->GetId(), diff);
+          // log successful request
+        } else {
+          // log successful request, already gotten or late
+          if (!m_lookup_late_CB.IsNull()) m_lookup_late_CB(dataID, GetNode()->GetId(), diff);
+        }
       }
 
       NS_LOG_LOGIC("TODO: Mark cache miss, mark lookup success, remove from pending reponse list");
@@ -481,13 +555,10 @@ void SafApplication::LookupData(uint16_t dataID) {
   Data item = GetDataItem(dataID);
 
   if (item.GetStatus() == DataStatus::stored) {
-    NS_LOG_LOGIC("TODO: Mark cache hit, mark lookup success");
-    // mark cache hit, mark successfull lookup
-    if (!m_cacheHitCallback.IsNull()) m_cacheHitCallback(dataID, GetNode()->GetId());
+    if (!m_cache_hit_CB.IsNull()) m_cache_hit_CB(dataID, GetNode()->GetId());
   } else {
     // send broadcast asking for the data item
-    // NS_LOG_LOGIC("TODO: Mark cache miss, mark asking peers");
-    AskPeers(dataID);
+    AskPeers(dataID, false);
   }
 }
 
@@ -496,8 +567,10 @@ void SafApplication::SaveDataItem(Data data) {
 
   bool found = false;
   bool stored = false;
-  //int firstFree = -1;
-  for (std::vector<Data>::iterator it = m_replica_data_items.begin() ; it != m_replica_data_items.end(); ++it) {
+
+  for (std::vector<Data>::iterator it = m_replica_data_items.begin();
+       it != m_replica_data_items.end();
+       ++it) {
     if (!found && m_access_frequencies[it - m_replica_data_items.begin()][0] == data.GetDataID()) {
       found = true;
     }
@@ -505,7 +578,7 @@ void SafApplication::SaveDataItem(Data data) {
     if (!stored && (*it).GetDataID() == data.GetDataID()) {
       stored = true;
     }
-	}
+  }
   if (!found || stored) {
     NS_LOG_INFO("data: " << data.GetDataID() << " Is not being saved");
   }
@@ -513,33 +586,30 @@ void SafApplication::SaveDataItem(Data data) {
   if (m_replica_data_items.size() < m_replica_space) {
     m_replica_data_items.push_back(data);
   }
-
-  // unless there are too many data items being stored this value will never be out of bounds
-  //m_replica_data_items[firstFree] = data;
 }
 
 Data SafApplication::GetDataItem(uint16_t dataID) {
   NS_LOG_FUNCTION(this);
   for (int i = 0; i < m_origianal_space; i++) {
     if (m_origianal_data_items[i].GetDataID() == dataID) {
-      // m_origianal_data_items[i].AccessData(); // increase access frequency
       return m_origianal_data_items[i];
     }
   }
 
-  for (std::vector<Data>::iterator it = m_replica_data_items.begin() ; it != m_replica_data_items.end(); ++it) {
+  for (std::vector<Data>::iterator it = m_replica_data_items.begin();
+       it != m_replica_data_items.end();
+       ++it) {
     if ((*it).GetDataID() == dataID) {
-      // m_replica_data_items[i].AccessData(); // increase access frequency
       return (*it);
     }
-	}
+  }
 
   return Data();
 }
 
-void SafApplication::AskPeers(uint16_t dataID) {
+void SafApplication::AskPeers(uint16_t dataID, bool isReplication) {
   NS_LOG_FUNCTION(this);
-  LookupMessage m = LookupMessage(dataID);
+  LookupMessage m = LookupMessage(dataID, isReplication);
   Ptr<Packet> p = m.ToPacket();
 
   Address localAddress;
@@ -550,16 +620,32 @@ void SafApplication::AskPeers(uint16_t dataID) {
   m_txTrace(p);
   m_txTraceWithAddresses(p, localAddress, InetSocketAddress(Ipv4Address::GetBroadcast(), m_port));
 
-  if (!m_requestSentCallback.IsNull())  m_requestSentCallback(dataID, GetNode()->GetId());
+  // TODO: use add a hook to the router to get all of the other one hop nodes in the routing table
+  // to get the total
+  // number of recipients
+
+  if (isReplication) {
+    m_pending_reallocations.insert(dataID);  // add to pending list
+    // stats for reallocation
+    if (!m_realloc_sent_CB.IsNull()) m_realloc_sent_CB(dataID, GetNode()->GetId());
+
+    if (Simulator::Now() + m_request_timeout < m_stopTime) {
+      Simulator::Schedule(m_request_timeout, &SafApplication::ReallocationTimeout, this, dataID);
+    }
+  } else {
+    m_pending_lookups.insert(dataID);  // add to pending list
+    // stats for 'normal lookup'
+    if (!m_lookup_sent_CB.IsNull()) m_lookup_sent_CB(dataID, GetNode()->GetId());
+
+    if (Simulator::Now() + m_request_timeout < m_stopTime) {
+      Simulator::Schedule(m_request_timeout, &SafApplication::LookupTimeout, this, dataID);
+    }
+  }
+
   m_socket_send->Send(p);
   m_sent++;
 
-  m_pending_lookups.insert(dataID);  // add to pending list
   NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s sent request for " << dataID);
-
-  if (Simulator::Now() + m_request_timeout < m_stopTime) {
-    Simulator::Schedule(m_request_timeout, &SafApplication::LookupTimeout, this, dataID);
-  }
 }
 
 void SafApplication::LookupTimeout(uint16_t dataID) {
@@ -569,9 +655,20 @@ void SafApplication::LookupTimeout(uint16_t dataID) {
   std::set<uint16_t>::iterator item = m_pending_lookups.find(dataID);
 
   if (dataID == *item) {
-    NS_LOG_INFO("TODO: mark lookup timed out for data item");
-    if (!m_requestTimeoutCallback.IsNull()) m_requestTimeoutCallback(dataID, GetNode()->GetId());
+    if (!m_lookup_timeout_CB.IsNull()) m_lookup_timeout_CB(dataID, GetNode()->GetId());
     m_pending_lookups.erase(dataID);
+  }
+}
+
+void SafApplication::ReallocationTimeout(uint16_t dataID) {
+  NS_LOG_FUNCTION(this);
+
+  // check to see if it is still in the pending lookup list
+  std::set<uint16_t>::iterator item = m_pending_reallocations.find(dataID);
+
+  if (dataID == *item) {
+    if (!m_realloc_timeout_CB.IsNull()) m_realloc_timeout_CB(dataID, GetNode()->GetId());
+    m_pending_reallocations.erase(dataID);
   }
 }
 
@@ -586,7 +683,9 @@ void SafApplication::RunReplication() {
   // check to see which items are not yet found, and request them if necessary
   for (uint16_t i = 0; i < m_replica_space; i++) {
     bool found = false;
-    for (std::vector<Data>::iterator it = m_replica_data_items.begin() ; it != m_replica_data_items.end(); ++it) {
+    for (std::vector<Data>::iterator it = m_replica_data_items.begin();
+         it != m_replica_data_items.end();
+         ++it) {
       if ((*it).GetStatus() == DataStatus::stored &&
           (*it).GetDataID() == m_access_frequencies[i][0]) {
         found = true;
@@ -594,10 +693,7 @@ void SafApplication::RunReplication() {
       }
     }
 
-    if (!found) {
-      if (!m_replicationRequestCallback.IsNull())  m_replicationRequestCallback(m_access_frequencies[i][0], GetNode()->GetId());
-      AskPeers(m_access_frequencies[i][0]);
-    }
+    if (!found) AskPeers(m_access_frequencies[i][0], true);
   }
 
   // schedule next reallocation event

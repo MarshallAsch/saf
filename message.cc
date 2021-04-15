@@ -18,12 +18,14 @@
  * data lookup request:
  * | Byte  | description |
  * | ----- | ----------- |
- * | 0...2 | dataID      |
+ * | 0...1 | dataID      |
+ * | 2     | isReplication |
  *
  * payload request:
  * | Byte  | description |
  * | ----- | ----------- |
- * | 0...2 | dataID |
+ * | 0...1 | dataID |
+ * | 2     | isforReplication |
  * | 3...  | data contents (random byte sequence to fill network bandwidth |
  *
  *
@@ -63,29 +65,39 @@ Ptr<Packet> Message::ToPacket() {
   return Create<Packet>(fill, len + 30);
 }
 
-LookupMessage::LookupMessage(uint16_t dataID) {
+LookupMessage::LookupMessage(uint16_t dataID, bool isReplication) {
   m_data_id = dataID;
+  m_is_replication = isReplication;
   m_type = MessageType::lookup;
 }
 
 std::vector<uint8_t> LookupMessage::GeneratePayload() {
-  std::vector<uint8_t> payload(2);
+  std::vector<uint8_t> payload(3);
 
   memcpy(&payload[0], &m_data_id, sizeof(m_data_id));
+  payload[2] = m_is_replication;
+
   return payload;
 }
 
-ResponseMessage::ResponseMessage(uint32_t requestID, uint64_t requestedAt, Data data) {
+ResponseMessage::ResponseMessage(
+    uint32_t requestID,
+    uint64_t requestedAt,
+    bool isReplication,
+    Data data) {
   m_data_id = data.GetDataID();
   m_data_size = data.GetSize();
   m_response_id = requestID;
   m_requested_at = requestedAt;
+  m_is_replication = isReplication;
   m_type = MessageType::dataResponse;
 }
 
 std::vector<uint8_t> ResponseMessage::GeneratePayload() {
-  std::vector<uint8_t> payload(sizeof(m_data_id) + m_data_size);
+  std::vector<uint8_t> payload(sizeof(m_data_id) + 1 + m_data_size);
   memcpy(&payload[0], &m_data_id, sizeof(m_data_id));
+  payload[2] = m_is_replication;
+
   return payload;
 }
 

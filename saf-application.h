@@ -19,21 +19,21 @@
 #ifndef SAF_APPLICATION_H
 #define SAF_APPLICATION_H
 
+#include <set>     // std::set
+#include <vector>  // std::vector
 #include "data.h"
 #include "ns3/application.h"
 #include "ns3/basic-data-calculators.h"
+#include "ns3/callback.h"
 #include "ns3/data-collector.h"
 #include "ns3/event-id.h"
 #include "ns3/ipv4-address.h"
+#include "ns3/object.h"
 #include "ns3/ptr.h"
 #include "ns3/random-variable-stream.h"
 #include "ns3/socket.h"
 #include "ns3/time-data-calculators.h"
 #include "ns3/traced-callback.h"
-#include "ns3/callback.h"
-#include "ns3/object.h"
-#include <set>     // std::set
-#include <vector>  // std::vector
 
 namespace saf {
 using namespace ns3;
@@ -112,7 +112,7 @@ class SafApplication : public Application {
 
   void SaveDataItem(Data data);
 
-  void AskPeers(uint16_t dataID);
+  void AskPeers(uint16_t dataID, bool isReplication);
 
   void LookupData(uint16_t dataID);
 
@@ -133,6 +133,8 @@ class SafApplication : public Application {
 
   std::vector<std::vector<uint16_t> > m_access_frequencies;
   std::set<uint16_t> m_pending_lookups;
+  std::set<uint16_t> m_pending_reallocations;
+
   // uint16_t* m_access_frequencies; // since the access frequencies are static and known for all
   // data items
   uint16_t m_total_data_items;
@@ -157,6 +159,8 @@ class SafApplication : public Application {
 
   void LookupTimeout(uint16_t dataID);
 
+  void ReallocationTimeout(uint16_t dataID);
+
   void RunReplication();
 
   void ScheduleFirstLookups();
@@ -175,13 +179,20 @@ class SafApplication : public Application {
   /// Callbacks for tracing the packet Rx events, includes source and destination addresses
   TracedCallback<Ptr<const Packet>, const Address&, const Address&> m_rxTraceWithAddresses;
 
-  Callback<void, uint16_t, uint32_t> m_cacheHitCallback;
-  Callback<void, uint16_t, uint32_t> m_replicationRequestCallback;
-  Callback<void, uint16_t, uint32_t> m_requestSentCallback;
-  Callback<void, uint16_t, uint32_t> m_responseSentCallback;
-  Callback<void, uint16_t, uint32_t> m_requestTimeoutCallback;
-  Callback<void, uint16_t, uint32_t, ns3::Time> m_responseReceivedCallback;
-  Callback<void, uint16_t, uint32_t, ns3::Time> m_lateResponseCallback;
+  Callback<void, uint16_t, uint32_t> m_cache_hit_CB;
+  Callback<void, uint16_t, uint32_t> m_lookup_sent_CB;
+  Callback<void, uint16_t, uint32_t> m_lookup_rcv_CB;
+  Callback<void, uint16_t, uint32_t> m_lookup_rsp_sent_CB;
+  Callback<void, uint16_t, uint32_t> m_lookup_timeout_CB;
+  Callback<void, uint16_t, uint32_t> m_realloc_timeout_CB;
+  Callback<void, uint16_t, uint32_t> m_realloc_sent_CB;
+  Callback<void, uint16_t, uint32_t> m_realloc_rcv_CB;
+  Callback<void, uint16_t, uint32_t> m_realloc_rsp_sent_CB;
+
+  Callback<void, uint16_t, uint32_t, ns3::Time> m_lookup_ontime_CB;
+  Callback<void, uint16_t, uint32_t, ns3::Time> m_lookup_late_CB;
+  Callback<void, uint16_t, uint32_t, ns3::Time> m_realloc_ontime_CB;
+  Callback<void, uint16_t, uint32_t, ns3::Time> m_realloc_late_CB;
 };
 
 }  // namespace saf

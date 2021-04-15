@@ -71,139 +71,120 @@ using namespace saf;
 bool verbose = true;
 
 DataCollector data;
-Ptr<CounterCalculator<> > m_cache_hits;
-Ptr<CounterCalculator<> > m_requests_sent;
-Ptr<CounterCalculator<> > m_responses_sent;
-Ptr<CounterCalculator<> > m_num_timeouts;
-Ptr<CounterCalculator<> > m_replication_sent;
-Ptr<TimeMinMaxAvgTotalCalculator> m_success_timings;
-Ptr<TimeMinMaxAvgTotalCalculator> m_response_timings;
 
+Ptr<CounterCalculator<> > m_cache_hit;
 
-void cacheHitCB(uint16_t dataID, uint32_t nodeID) {
-  m_cache_hits->Update();
+// these is only for the application level data lookups
+// this will exclude the lookups for reallocation purposes
+Ptr<CounterCalculator<> > m_lookup_sent;
+Ptr<CounterCalculator<> > m_lookup_rcv;
+
+Ptr<CounterCalculator<> > m_lookup_rsp_sent;
+// lookup rsp receive will bt the lookup late + lookup ontime
+
+// these will count the number of times that the request timed out
+// of times late is high then the application timeout should be increased
+// if the timouts is higher then the late then it probably means that data is lost
+// or that no one has what your looking for and a longer timeout will not improve
+// things
+Ptr<CounterCalculator<> > m_lookup_timeout;
+Ptr<CounterCalculator<> > m_realloc_timeout;
+
+// this will count the lookups for just the reallocation
+// lookups  not the application ones
+Ptr<CounterCalculator<> > m_realloc_sent;
+Ptr<CounterCalculator<> > m_realloc_rcv;
+
+Ptr<CounterCalculator<> > m_realloc_rsp_sent;
+// realoc rsp receive will bt the realoc late + realoc ontime
+
+// timings for application lookup responses
+Ptr<TimeMinMaxAvgTotalCalculator> m_lookup_ontime;
+Ptr<TimeMinMaxAvgTotalCalculator> m_lookup_late;
+
+// timings for realloc responses
+Ptr<TimeMinMaxAvgTotalCalculator> m_realloc_ontime;
+Ptr<TimeMinMaxAvgTotalCalculator> m_realloc_late;
+
+void cache_hit_CB(uint16_t dataID, uint32_t nodeID) { m_cache_hit->Update(); }
+
+void lookup_sent_CB(uint16_t dataID, uint32_t nodeID) { m_lookup_sent->Update(); }
+
+void lookup_rcv_CB(uint16_t dataID, uint32_t nodeID) { m_lookup_rcv->Update(); }
+
+void lookup_rsp_sent_CB(uint16_t dataID, uint32_t nodeID) { m_lookup_rsp_sent->Update(); }
+
+void lookup_timeout_CB(uint16_t dataID, uint32_t nodeID) { m_lookup_timeout->Update(); }
+
+void realloc_timeout_CB(uint16_t dataID, uint32_t nodeID) { m_realloc_timeout->Update(); }
+
+void realloc_sent_CB(uint16_t dataID, uint32_t nodeID) { m_realloc_sent->Update(); }
+
+void realloc_rcv_CB(uint16_t dataID, uint32_t nodeID) { m_realloc_rcv->Update(); }
+
+void realloc_rsp_sent_CB(uint16_t dataID, uint32_t nodeID) { m_realloc_rsp_sent->Update(); }
+
+void lookup_ontime_CB(uint16_t dataID, uint32_t nodeID, Time delay) {
+  m_lookup_ontime->Update(delay);
 }
 
-void replicationRequestCB(uint16_t dataID, uint32_t nodeID) {
-  m_replication_sent->Update();
+void lookup_late_CB(uint16_t dataID, uint32_t nodeID, Time delay) { m_lookup_late->Update(delay); }
+
+void realloc_ontime_CB(uint16_t dataID, uint32_t nodeID, Time delay) {
+  m_realloc_ontime->Update(delay);
 }
 
-void requestSentCB(uint16_t dataID, uint32_t nodeID) {
-  m_requests_sent->Update();
+void realloc_late_CB(uint16_t dataID, uint32_t nodeID, Time delay) {
+  m_realloc_late->Update(delay);
 }
-
-void responseSentCB(uint16_t dataID, uint32_t nodeID) {
-  m_responses_sent->Update();
-}
-
-void requestTimeoutCB(uint16_t dataID, uint32_t nodeID) {
-  m_num_timeouts->Update();
-}
-
-void responseReceivedCB(uint16_t dataID, uint32_t nodeID, Time delay) {
-  m_success_timings->Update(delay);
-}
-
-void lateResponseReceivedCB(uint16_t dataID, uint32_t nodeID, Time delay) {
-  m_response_timings->Update(delay);
-}
-
 
 void setupStats(uint32_t runNum, std::string input) {
-
   // change some of this stuff to real values that are not hardcoded
   data.DescribeRun("SAF experiment", "wireless", input, std::to_string(runNum));
   data.AddMetadata("Author", "Marshall Asch");
 
+  m_cache_hit = CreateObject<CounterCalculator<> >();
+  m_lookup_sent = CreateObject<CounterCalculator<> >();
+  m_lookup_rcv = CreateObject<CounterCalculator<> >();
+  m_lookup_rsp_sent = CreateObject<CounterCalculator<> >();
+  m_lookup_timeout = CreateObject<CounterCalculator<> >();
+  m_realloc_timeout = CreateObject<CounterCalculator<> >();
+  m_realloc_sent = CreateObject<CounterCalculator<> >();
+  m_realloc_rcv = CreateObject<CounterCalculator<> >();
+  m_realloc_rsp_sent = CreateObject<CounterCalculator<> >();
 
-  m_cache_hits = CreateObject<CounterCalculator<> >();
-  m_requests_sent = CreateObject<CounterCalculator<> >();
-  m_replication_sent= CreateObject<CounterCalculator<> >();
-  m_responses_sent = CreateObject<CounterCalculator<> >();
-  m_num_timeouts = CreateObject<CounterCalculator<> >();
-  m_success_timings = CreateObject<TimeMinMaxAvgTotalCalculator>();
-  m_response_timings = CreateObject<TimeMinMaxAvgTotalCalculator>();
+  m_lookup_ontime = CreateObject<TimeMinMaxAvgTotalCalculator>();
+  m_lookup_late = CreateObject<TimeMinMaxAvgTotalCalculator>();
+  m_realloc_ontime = CreateObject<TimeMinMaxAvgTotalCalculator>();
+  m_realloc_late = CreateObject<TimeMinMaxAvgTotalCalculator>();
 
-  m_cache_hits->SetKey("cache-hits");
-  m_requests_sent->SetKey("requests-sent");
-  m_replication_sent->SetKey("replication-sent");
-  m_responses_sent->SetKey("responses-sent");
-  m_num_timeouts->SetKey("timeouts");
-  m_success_timings->SetKey("time-for-success");
-  m_response_timings->SetKey("time-for-failed");
+  m_cache_hit->SetKey("cache-hit");
+  m_lookup_sent->SetKey("lookup-sent");
+  m_lookup_rcv->SetKey("lookup-rcv");
+  m_lookup_rsp_sent->SetKey("lookup-rsp-sent");
+  m_lookup_timeout->SetKey("lookup-timeout");
+  m_realloc_timeout->SetKey("realloc-timeout");
+  m_realloc_sent->SetKey("realloc-sent");
+  m_realloc_rcv->SetKey("realloc-rcv");
+  m_realloc_rsp_sent->SetKey("realloc-rsp-sent");
+  m_lookup_ontime->SetKey("lookup-ontime-delay");
+  m_lookup_late->SetKey("lookup-late-delay");
+  m_realloc_ontime->SetKey("realloc-ontime-delay");
+  m_realloc_late->SetKey("realloc-late-delay");
 
-  data.AddDataCalculator(m_cache_hits);
-  data.AddDataCalculator(m_requests_sent);
-  data.AddDataCalculator(m_replication_sent);
-  data.AddDataCalculator(m_responses_sent);
-  data.AddDataCalculator(m_num_timeouts);
-  data.AddDataCalculator(m_success_timings);
-  data.AddDataCalculator(m_response_timings);
-}
-
-
-
-void runWired() {
-  Address serverAddress;
-
-  // Explicitly create the nodes required by the topology (shown above).
-  NS_LOG_INFO("Create nodes.");
-  NodeContainer n;
-  n.Create(4);
-
-  InternetStackHelper internet;
-  internet.Install(n);
-
-  NS_LOG_INFO("Create channels.");
-  // Explicitly create the channels required by the topology (shown above).
-  CsmaHelper csma;
-  csma.SetChannelAttribute("DataRate", DataRateValue(DataRate(5000000)));
-  csma.SetChannelAttribute("Delay", TimeValue(MilliSeconds(2)));
-  csma.SetDeviceAttribute("Mtu", UintegerValue(1400));
-  NetDeviceContainer d = csma.Install(n);
-
-  // We've got the "hardware" in place.  Now we need to add IP addresses.
-  NS_LOG_INFO("Assign IP Addresses.");
-
-  Ipv4AddressHelper ipv4;
-  ipv4.SetBase("10.1.1.0", "255.255.255.0");
-  Ipv4InterfaceContainer i = ipv4.Assign(d);
-  serverAddress = Address(i.GetAddress(1));
-
-  NS_LOG_INFO("Create Applications.");
-  // install the application onto the nodes here
-  SafApplicationHelper app(5000, n.GetN(), n.GetN());
-  app.SetAttribute("ReallocationPeriod", TimeValue(5.0_sec));
-
-  app.SetAttribute("cacheHitCallback", CallbackValue(MakeCallback(&cacheHitCB)));
-  app.SetAttribute("requestSentCallback", CallbackValue(MakeCallback(&requestSentCB)));
-  app.SetAttribute("responseSentCallback", CallbackValue(MakeCallback(&responseSentCB)));
-  app.SetAttribute("replicationRequestCallback", CallbackValue(MakeCallback(&replicationRequestCB)));
-  app.SetAttribute("timeoutCallback", CallbackValue(MakeCallback(&requestTimeoutCB)));
-  app.SetAttribute("responseReceivedCallback", CallbackValue(MakeCallback(&responseReceivedCB)));
-  app.SetAttribute("lateResponseCallback", CallbackValue(MakeCallback(&lateResponseReceivedCB)));
-  // any extra paramters would be set here
-
-  ApplicationContainer apps = app.Install(n);
-
-  // pick a start and end time that makes sense, maybe wait a little for the network to get setup or
-  // something
-  apps.Start(Seconds(1));
-  apps.Stop(Seconds(20));
-
-  AsciiTraceHelper ascii;
-  csma.EnableAsciiAll(ascii.CreateFileStream("usaf-wire.tr"));
-  csma.EnablePcapAll("saf-wire", false);
-
-  // Now, do the actual simulation.
-  NS_LOG_INFO("Run Simulation.");
-  Simulator::Run();
-
-  Ptr<DataOutputInterface> output = CreateObject<OmnetDataOutput>();
-  output->Output(data);
-
-  Simulator::Destroy();
-  NS_LOG_INFO("Done.");
+  data.AddDataCalculator(m_cache_hit);
+  data.AddDataCalculator(m_lookup_sent);
+  data.AddDataCalculator(m_lookup_rcv);
+  data.AddDataCalculator(m_lookup_rsp_sent);
+  data.AddDataCalculator(m_lookup_timeout);
+  data.AddDataCalculator(m_realloc_timeout);
+  data.AddDataCalculator(m_realloc_sent);
+  data.AddDataCalculator(m_realloc_rcv);
+  data.AddDataCalculator(m_realloc_rsp_sent);
+  data.AddDataCalculator(m_lookup_ontime);
+  data.AddDataCalculator(m_lookup_late);
+  data.AddDataCalculator(m_realloc_ontime);
+  data.AddDataCalculator(m_realloc_late);
 }
 
 /**
@@ -241,7 +222,6 @@ int main(int argc, char* argv[]) {
     return 0;
   }
 
-
   // this will set a seed so that the same numbers are not generated each time.
   // the run number should be incremented each time this simulation is run to ensure streams do not
   // overlap
@@ -249,9 +229,6 @@ int main(int argc, char* argv[]) {
   RngSeedManager::SetRun(params.runNumber);
 
   setupStats(params.runNumber, std::string(params));
-
-  //runWired();
-  //return 0;
 
   // create node containers
   NodeContainer nodes;
@@ -313,8 +290,10 @@ int main(int argc, char* argv[]) {
   //     DoubleValue(41.7));
   wifiPhy.SetChannel(wifiChannel.Create());
 
-  wifiChannel.AddPropagationLoss("ns3::RangePropagationLossModel",
-            "MaxRange", DoubleValue(params.wifiRadius));
+  wifiChannel.AddPropagationLoss(
+      "ns3::RangePropagationLossModel",
+      "MaxRange",
+      DoubleValue(params.wifiRadius));
   wifiPhy.SetChannel(wifiChannel.Create());
 
   // set radio to ad hoc network mode? This seems to be needed
@@ -349,13 +328,20 @@ int main(int argc, char* argv[]) {
   // install the application onto the nodes here
   SafApplicationHelper app(5000, params.totalNodes, params.totalDataItems);
   // any extra paramters would be set here
-  app.SetAttribute("cacheHitCallback", CallbackValue(MakeCallback(&cacheHitCB)));
-  app.SetAttribute("requestSentCallback", CallbackValue(MakeCallback(&requestSentCB)));
-  app.SetAttribute("responseSentCallback", CallbackValue(MakeCallback(&responseSentCB)));
-  app.SetAttribute("replicationRequestCallback", CallbackValue(MakeCallback(&replicationRequestCB)));
-  app.SetAttribute("timeoutCallback", CallbackValue(MakeCallback(&requestTimeoutCB)));
-  app.SetAttribute("responseReceivedCallback", CallbackValue(MakeCallback(&responseReceivedCB)));
-  app.SetAttribute("lateResponseCallback", CallbackValue(MakeCallback(&lateResponseReceivedCB)));
+
+  app.SetAttribute("cache_hit_CB", CallbackValue(MakeCallback(&cache_hit_CB)));
+  app.SetAttribute("lookup_sent_CB", CallbackValue(MakeCallback(&lookup_sent_CB)));
+  app.SetAttribute("lookup_rcv_CB", CallbackValue(MakeCallback(&lookup_rcv_CB)));
+  app.SetAttribute("lookup_rsp_sent_CB", CallbackValue(MakeCallback(&lookup_rsp_sent_CB)));
+  app.SetAttribute("lookup_timeout_CB", CallbackValue(MakeCallback(&lookup_timeout_CB)));
+  app.SetAttribute("realloc_timeout_CB", CallbackValue(MakeCallback(&realloc_timeout_CB)));
+  app.SetAttribute("realloc_sent_CB", CallbackValue(MakeCallback(&realloc_sent_CB)));
+  app.SetAttribute("realloc_rcv_CB", CallbackValue(MakeCallback(&realloc_rcv_CB)));
+  app.SetAttribute("realloc_rsp_sent_CB", CallbackValue(MakeCallback(&realloc_rsp_sent_CB)));
+  app.SetAttribute("lookup_ontime_CB", CallbackValue(MakeCallback(&lookup_ontime_CB)));
+  app.SetAttribute("lookup_late_CB", CallbackValue(MakeCallback(&lookup_late_CB)));
+  app.SetAttribute("realloc_ontime_CB", CallbackValue(MakeCallback(&realloc_ontime_CB)));
+  app.SetAttribute("realloc_late_CB", CallbackValue(MakeCallback(&realloc_late_CB)));
 
   ApplicationContainer apps = app.Install(nodes);
 
@@ -367,11 +353,11 @@ int main(int argc, char* argv[]) {
   // actually run the simulation
   // AnimationInterface anim( "animation-test.xml");
   // anim.SetMobilityPollInterval(Seconds(1));
-  //AnimationInterface anim(params.netanimTraceFilePath);
+  // AnimationInterface anim(params.netanimTraceFilePath);
 
-  //AsciiTraceHelper ascii;
-  //wifiPhy.EnableAsciiAll(ascii.CreateFileStream("saf.tr"));
-  //wifiPhy.EnablePcapAll("saf", false);
+  // AsciiTraceHelper ascii;
+  // wifiPhy.EnableAsciiAll(ascii.CreateFileStream("saf.tr"));
+  // wifiPhy.EnablePcapAll("saf", false);
 
   // actually run the simulation
   Simulator::Stop(params.runtime);

@@ -39,10 +39,11 @@ class Message {
 class LookupMessage : public Message {
  private:
   uint16_t m_data_id;
+  bool m_is_replication;
   std::vector<uint8_t> GeneratePayload();
 
  public:
-  LookupMessage(uint16_t dataID);
+  LookupMessage(uint16_t dataID, bool isReplication);
 };
 
 class ResponseMessage : public Message {
@@ -50,10 +51,11 @@ class ResponseMessage : public Message {
   uint16_t m_data_id;  // the data object this is a response for
   // dont need to actually have the data conent here
   uint32_t m_data_size;
+  bool m_is_replication;
   std::vector<uint8_t> GeneratePayload();
 
  public:
-  ResponseMessage(uint32_t requestID, uint64_t requestedAt, Data data);
+  ResponseMessage(uint32_t requestID, uint64_t requestedAt, bool isReplication, Data data);
 };
 
 }  // namespace saf
