@@ -24,6 +24,16 @@ and Hara's methods have been the defacto standard that others are compared to).
 *Note*: Hara implemented their algorithm using a custom built simulator, we have
 chosen to implement it using the popular NS-3 network simulator instead.
 
+## Prereqs:
+Not sure if there are others but on ubuntu:
+- sqlite3, libsqlite3-dev
+
+If building netanim:
+- qt4-qmake
+- libqt4-dev
+
+(additionally, on ubuntu 20.10, you need to add an additional repo because qt4 no longer ships with it)
+- https://launchpad.net/~gezakovacs/+archive/ubuntu/ppa
 
 ## Building this project
 
@@ -57,7 +67,7 @@ Reproducibility is one of the key goals of simulator studies.
 
    ```sh
    cd ..
-   ./waf --run 'scratch/saf/saf`
+   ./waf --run 'scratch/saf/saf'
    ```
 
 ## Running the simulation
@@ -78,7 +88,7 @@ You can view an animation of the simulation using `NetAnim`, which is included
 with the ns-3 all-in-one distribution. To do so, run the following:
 
 ```
-./waf --run 'scratch/saf/saf --animation-xml=path/to/saf.xml
+./waf --run 'scratch/saf/saf --animation-xml=path/to/saf.xml'
 ```
 
 This will generate an XML file at the specified path. You can then open this
