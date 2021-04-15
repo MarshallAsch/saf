@@ -1,3 +1,9 @@
+![Code linter on main](https://img.shields.io/github/workflow/status/marshallasch/saf/Clang-format/main?style=plastic)
+![ns3 build checker on main](https://img.shields.io/github/workflow/status/marshallasch/saf/build-ns3/main?style=plastic)
+![GitHub](https://img.shields.io/github/license/marshallasch/saf?style=plastic)
+![Lines of code](https://img.shields.io/tokei/lines/github/marshallasch/saf?style=plastic)
+![NS3 version](https://img.shields.io/badge/NS--3-3.32-blueviolet?style=plastic)
+
 # SAF Simulation
 
 This NS-3 scratch simulator code that attempts to implement the SAF data storage
@@ -9,13 +15,13 @@ scheme and reproduce the performance evaluation as described in:
 
 ## Motivation
 
-As part of my masters work as part of the Gillis Lab group<sup>[1]</sup> I am 
-evaluating existing data storage schemes that does not have any available 
-implementations to evaluate. 
+As part of my masters work as part of the Gillis Lab group<sup>[1]</sup> I am
+evaluating existing data storage schemes that does not have any available
+implementations to evaluate.
 A challenge that our lab group discovered is that there although there have been
 a number of works published that focus on developing new, better algorithms
 very little work has been done to evaluate the ones that exist, largely due to
-challenges around replicating the studies or reproducing the algorithms. 
+challenges around replicating the studies or reproducing the algorithms.
 
 The goal of this implementation is to be able to have a baseline to compare other
 data storage schemes too (since there are none that are readily available
@@ -104,6 +110,11 @@ This project is formatted according to the `.clang-format` file included in this
 I would like to acknowledge the amazing work that was done by Keefer Rourke ([@keeferrourke])
 on the initial [RHPMAN] project that I used as a base for this implementation.
 
+
+## License
+While ns-3 is itself licensed under the GNU General Public License v2, the code in this repository is made available under the Internet Systems Consortium (ISC) License.
+
+A copy of this license is included in this repository, and embedded in the top of each source file.
 
 <!-- links -->
 

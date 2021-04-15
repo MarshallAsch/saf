@@ -567,7 +567,6 @@ void SafApplication::SaveDataItem(Data data) {
 
   bool found = false;
   bool stored = false;
-
   for (std::vector<Data>::iterator it = m_replica_data_items.begin();
        it != m_replica_data_items.end();
        ++it) {
