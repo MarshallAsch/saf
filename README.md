@@ -86,14 +86,14 @@ Every parameter of the simulation is configurable. Run the following to see
 all the configurable parameters. The default values are as described in the
 SAF paper cited at the top of this document.
 
-```
+```bash
 ./waf --run 'scratch/saf/saf --printHelp'  # <-- mind the quotes!
 ```
 
 You can view an animation of the simulation using `NetAnim`, which is included
 with the ns-3 all-in-one distribution. To do so, run the following:
 
-```
+```bash
 ./waf --run 'scratch/saf/saf --animation-xml=path/to/saf.xml'
 ```
 
@@ -104,6 +104,15 @@ file with `NetAnim` to view what happens during the simulation run.
 ## Code style
 
 This project is formatted according to the `.clang-format` file included in this repository. It intentionally deviates from the code style used by the ns-3 library and simulator developers.
+
+The code can be formatted using the included python script created by Guillaume Papin ([@Sarcasm]) and can be found [Sarcasm/run-clang-format].
+
+
+The following command can be run to automatically reformat the code in place according the included style guideline.
+
+```bash
+$ ./run-clang-format.py -r -t --style file .
+``
 
 ## Special Thanks
 
@@ -121,3 +130,5 @@ A copy of this license is included in this repository, and embedded in the top o
 [1]: https://danielgillis.wordpress.com/students/
 [RHPMAN]: https://github.com/keeferrourke/rhpman-sim
 [@keeferrourke]: https://github.com/keeferrourke
+[Sarcasm]: https://github.com/Sarcasm
+[Sarcasm/run-clang-format]: https://github.com/Sarcasm/run-clang-format
