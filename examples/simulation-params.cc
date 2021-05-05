@@ -22,10 +22,9 @@
 #include "ns3/random-variable-stream.h"
 #include "ns3/random-walk-2d-mobility-model.h"
 
-#include "ns3/util.h"
-#include "ns3/double.h"
 #include "ns3/command-line.h"
-
+#include "ns3/double.h"
+#include "ns3/util.h"
 
 #include "logging.h"
 #include "simulation-params.h"

@@ -15,17 +15,13 @@
 
 namespace ns3 {
 
-enum class MessageType : uint8_t {
-  unknown = 0x00,
-  lookup = 0x01,
-  dataResponse = 0x02
-};
+enum class MessageType : uint8_t { unknown = 0x00, lookup = 0x01, dataResponse = 0x02 };
 
 class Message {
-private:
+ private:
   virtual std::vector<uint8_t> GeneratePayload();
 
-protected:
+ protected:
   /* data */
   uint32_t m_request_id;
   uint32_t m_response_id;
@@ -33,7 +29,7 @@ protected:
   int64_t m_sent_at;
   MessageType m_type;
 
-public:
+ public:
   Message();
   ~Message();
 
@@ -43,28 +39,27 @@ public:
 };
 
 class LookupMessage : public Message {
-private:
+ private:
   uint16_t m_data_id;
   bool m_is_replication;
   std::vector<uint8_t> GeneratePayload();
 
-public:
+ public:
   LookupMessage(uint16_t dataID, bool isReplication);
 };
 
 class ResponseMessage : public Message {
-private:
-  uint16_t m_data_id; // the data object this is a response for
+ private:
+  uint16_t m_data_id;  // the data object this is a response for
   // dont need to actually have the data conent here
   uint32_t m_data_size;
   bool m_is_replication;
   std::vector<uint8_t> GeneratePayload();
 
-public:
-  ResponseMessage(uint32_t requestID, uint64_t requestedAt, bool isReplication,
-                  Data data);
+ public:
+  ResponseMessage(uint32_t requestID, uint64_t requestedAt, bool isReplication, Data data);
 };
 
-} // namespace ns3
+}  // namespace ns3
 
 #endif /*  SAF_DATA_H */

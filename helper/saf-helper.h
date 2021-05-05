@@ -2,10 +2,10 @@
 #ifndef SAF_HELPER_H
 #define SAF_HELPER_H
 
+#include <stdint.h>
 #include "ns3/application-container.h"
 #include "ns3/node-container.h"
 #include "ns3/object-factory.h"
-#include <stdint.h>
 
 #include "ns3/saf.h"
 
@@ -17,7 +17,7 @@ namespace ns3 {
  *        and sends them back to the original sender.
  */
 class SafApplicationHelper {
-public:
+ public:
   /**
    * Create SafApplicationHelper which will make life easier for people trying
    * to set up simulations with echos.
@@ -32,7 +32,7 @@ public:
    * \param name the name of the attribute to set
    * \param value the value of the attribute to set
    */
-  void SetAttribute(std::string name, const AttributeValue &value);
+  void SetAttribute(std::string name, const AttributeValue& value);
 
   /**
    * Create a UdpEchoServerApplication on the specified Node.
@@ -67,7 +67,7 @@ public:
    */
   ApplicationContainer Install(NodeContainer c) const;
 
-private:
+ private:
   /**
    * Install an ns3::UdpEchoServer on the node configured with all the
    * attributes set with SetAttribute.
@@ -77,9 +77,9 @@ private:
    */
   Ptr<Application> InstallPriv(Ptr<Node> node) const;
 
-  ObjectFactory m_factory; //!< Object factory.
+  ObjectFactory m_factory;  //!< Object factory.
 };
 
-} // namespace ns3
+}  // namespace ns3
 
 #endif /* SAF_HELPER_H */

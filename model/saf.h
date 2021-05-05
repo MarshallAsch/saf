@@ -2,8 +2,8 @@
 #ifndef SAF_H
 #define SAF_H
 
-#include <set>    // std::set
-#include <vector> // std::vector
+#include <set>     // std::set
+#include <vector>  // std::vector
 
 #include "ns3/application.h"
 #include "ns3/basic-data-calculators.h"
@@ -29,7 +29,7 @@ namespace ns3 {
  * Every packet sent should be returned by the server and received here.
  */
 class SafApplication : public Application {
-public:
+ public:
   /**
    * \brief Get the type ID.
    * \return the object TypeId
@@ -69,12 +69,12 @@ public:
    * \param fillSize The number of bytes in the provided fill pattern.
    * \param dataSize The desired size of the final echo data.
    */
-  void SetFill(uint8_t *fill, uint32_t fillSize, uint32_t dataSize);
+  void SetFill(uint8_t* fill, uint32_t fillSize, uint32_t dataSize);
 
-protected:
+ protected:
   virtual void DoDispose(void);
 
-private:
+ private:
   virtual void StartApplication(void);
   virtual void StopApplication(void);
 
@@ -97,22 +97,21 @@ private:
 
   void LookupData(uint16_t dataID);
 
-  uint32_t m_size; //!< Size of the sent packet
+  uint32_t m_size;  //!< Size of the sent packet
 
-  uint32_t m_dataSize; //!< packet payload size (must be equal to m_size)
+  uint32_t m_dataSize;  //!< packet payload size (must be equal to m_size)
 
-  uint32_t m_sent;           //!< Counter for sent packets
-  Ptr<Socket> m_socket_send; //!< Socket
-  Ptr<Socket> m_socket_recv; //!< Socket
+  uint32_t m_sent;            //!< Counter for sent packets
+  Ptr<Socket> m_socket_send;  //!< Socket
+  Ptr<Socket> m_socket_recv;  //!< Socket
 
-  uint16_t m_port; //!< Remote peer port
+  uint16_t m_port;  //!< Remote peer port
 
-  EventId m_reallocation_event; // for pending reallocation events
+  EventId m_reallocation_event;  // for pending reallocation events
 
-  std::vector<Data>
-      m_replica_data_items; // the block of memory to hold the data items
-  std::vector<Data> m_origianal_data_items; // the block of memory to hold the
-                                            // originals data items
+  std::vector<Data> m_replica_data_items;    // the block of memory to hold the data items
+  std::vector<Data> m_origianal_data_items;  // the block of memory to hold the
+                                             // originals data items
 
   std::vector<std::vector<uint16_t>> m_access_frequencies;
   std::set<uint32_t> m_pending_lookups;
@@ -123,10 +122,10 @@ private:
   uint16_t m_total_data_items;
   uint32_t m_total_num_nodes;
 
-  uint16_t m_origianal_space; // the number of data items that can be stored by
-                              // the node
-  uint16_t m_replica_space;   // the number of data items that can be stored by
-                              // the node
+  uint16_t m_origianal_space;  // the number of data items that can be stored by
+                               // the node
+  uint16_t m_replica_space;    // the number of data items that can be stored by
+                               // the node
 
   uint16_t m_access_frequency_type;
   double m_standard_deviation;
@@ -160,13 +159,11 @@ private:
 
   /// Callbacks for tracing the packet Tx events, includes source and
   /// destination addresses
-  TracedCallback<Ptr<const Packet>, const Address &, const Address &>
-      m_txTraceWithAddresses;
+  TracedCallback<Ptr<const Packet>, const Address&, const Address&> m_txTraceWithAddresses;
 
   /// Callbacks for tracing the packet Rx events, includes source and
   /// destination addresses
-  TracedCallback<Ptr<const Packet>, const Address &, const Address &>
-      m_rxTraceWithAddresses;
+  TracedCallback<Ptr<const Packet>, const Address&, const Address&> m_rxTraceWithAddresses;
 
   Callback<void, uint16_t, uint32_t> m_cache_hit_CB;
   Callback<void, uint16_t, uint32_t> m_lookup_sent_CB;
@@ -183,6 +180,6 @@ private:
   Callback<void, uint16_t, uint32_t, ns3::Time> m_realloc_ontime_CB;
   Callback<void, uint16_t, uint32_t, ns3::Time> m_realloc_late_CB;
 };
-} // namespace ns3
+}  // namespace ns3
 
 #endif /* SAF_H */

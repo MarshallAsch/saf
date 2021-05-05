@@ -50,4 +50,4 @@ uint32_t Data::GetSize() { return m_size; }
 
 DataStatus Data::GetStatus() { return m_status; }
 
-} // Namespace ns3
+}  // Namespace ns3

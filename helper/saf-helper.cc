@@ -7,12 +7,16 @@
 
 namespace ns3 {
 
-SafApplicationHelper::SafApplicationHelper(uint16_t port, uint32_t numNodes,
-                                           uint16_t numDataitems) {
-  NS_ASSERT_MSG(numDataitems % numNodes == 0,
-                "Data items MUST be divisable by the number of nodes");
-  NS_ASSERT_MSG(numDataitems != 0 && numNodes != 0,
-                "Data items and number of nodes can not be zero");
+SafApplicationHelper::SafApplicationHelper(
+    uint16_t port,
+    uint32_t numNodes,
+    uint16_t numDataitems) {
+  NS_ASSERT_MSG(
+      numDataitems % numNodes == 0,
+      "Data items MUST be divisable by the number of nodes");
+  NS_ASSERT_MSG(
+      numDataitems != 0 && numNodes != 0,
+      "Data items and number of nodes can not be zero");
 
   m_factory.SetTypeId(SafApplication::GetTypeId());
   SetAttribute("Port", UintegerValue(port));
@@ -20,8 +24,7 @@ SafApplicationHelper::SafApplicationHelper(uint16_t port, uint32_t numNodes,
   SetAttribute("TotalDataItems", UintegerValue(numDataitems));
 }
 
-void SafApplicationHelper::SetAttribute(std::string name,
-                                        const AttributeValue &value) {
+void SafApplicationHelper::SetAttribute(std::string name, const AttributeValue& value) {
   m_factory.Set(name, value);
 }
 
@@ -49,4 +52,4 @@ Ptr<Application> SafApplicationHelper::InstallPriv(Ptr<Node> node) const {
 
   return app;
 }
-} // namespace ns3
+}  // namespace ns3

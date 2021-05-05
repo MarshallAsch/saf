@@ -30,4 +30,4 @@ ns3::Time operator"" _min(const long double minutes) {
   return ns3::Time::FromDouble(minutes, ns3::Time::Unit::MIN);
 }
 
-} // namespace ns3
+}  // namespace ns3

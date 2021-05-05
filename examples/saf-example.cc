@@ -66,7 +66,6 @@
 #include "nsutil.h"
 #include "simulation-params.h"
 
-
 using namespace ns3;
 using namespace saf;
 

@@ -33,7 +33,7 @@ ns3::Time operator"" _sec(const long double seconds);
 /// User defined literal for time values in minutes.
 ns3::Time operator"" _min(const long double minutes);
 
-} // namespace ns3
+}  // namespace ns3
 /// User defined literal for metric lengths.
 constexpr int32_t operator"" _meters(const unsigned long long meters) {
   return static_cast<int32_t>(meters);
@@ -41,14 +41,10 @@ constexpr int32_t operator"" _meters(const unsigned long long meters) {
 constexpr double operator"" _meters(const long double meters) { return meters; }
 
 /// User defined literal for unit measures in seconds.
-constexpr double operator"" _seconds(const long double seconds) {
-  return seconds;
-}
+constexpr double operator"" _seconds(const long double seconds) { return seconds; }
 
 /// User defined literal for minute measures, auto converted to seconds.
-constexpr double operator"" _minutes(const long double minutes) {
-  return minutes * 60;
-}
+constexpr double operator"" _minutes(const long double minutes) { return minutes * 60; }
 
 /// User defined literal for meters/second velocities.
 constexpr double operator"" _mps(const long double mps) { return mps; }
@@ -59,12 +55,10 @@ constexpr int32_t operator"" _b(const unsigned long long bytes) {
 }
 
 /// User defined literal for percentages.
-constexpr double operator"" _percent(const long double num) {
-  return num / 100.0;
-}
+constexpr double operator"" _percent(const long double num) { return num / 100.0; }
 
 template <typename T>
-std::ostream &operator<<(std::ostream &os, const std::vector<T> &vec) {
+std::ostream& operator<<(std::ostream& os, const std::vector<T>& vec) {
   os << "[";
   for (size_t i = 0; i < vec.size(); i++) {
     os << vec[i];

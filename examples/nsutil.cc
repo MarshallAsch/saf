@@ -37,8 +37,7 @@ RoutingType getRoutingType(std::string str) {
   return RoutingType::UNKNOWN;
 }
 
-std::pair<ns3::RandomWalk2dMobilityModel::Mode, bool>
-getWalkMode(std::string str) {
+std::pair<ns3::RandomWalk2dMobilityModel::Mode, bool> getWalkMode(std::string str) {
   std::pair<ns3::RandomWalk2dMobilityModel::Mode, bool> result;
   result.second = false;
   std::string lower = str;
@@ -53,4 +52,4 @@ getWalkMode(std::string str) {
   return result;
 }
 
-}; // namespace saf
+};  // namespace saf

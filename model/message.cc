@@ -46,9 +46,7 @@ Message::~Message() { m_requested_at = 0; }
 
 uint32_t Message::getRequestID() { return m_request_id; }
 
-std::vector<uint8_t> Message::GeneratePayload() {
-  return std::vector<uint8_t>(0);
-}
+std::vector<uint8_t> Message::GeneratePayload() { return std::vector<uint8_t>(0); }
 
 Ptr<Packet> Message::ToPacket() {
   std::vector<uint8_t> payload = GeneratePayload();
@@ -83,8 +81,11 @@ std::vector<uint8_t> LookupMessage::GeneratePayload() {
   return payload;
 }
 
-ResponseMessage::ResponseMessage(uint32_t requestID, uint64_t requestedAt,
-                                 bool isReplication, Data data) {
+ResponseMessage::ResponseMessage(
+    uint32_t requestID,
+    uint64_t requestedAt,
+    bool isReplication,
+    Data data) {
   m_data_id = data.GetDataID();
   m_data_size = data.GetSize();
   m_response_id = requestID;
@@ -101,4 +102,4 @@ std::vector<uint8_t> ResponseMessage::GeneratePayload() {
   return payload;
 }
 
-} // Namespace ns3
+}  // Namespace ns3
