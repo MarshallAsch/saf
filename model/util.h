@@ -7,13 +7,13 @@
 /// purpose with or without fee is hereby granted, provided that the above
 /// copyright notice and this permission notice appear in all copies.
 ///
-/// THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-/// REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-/// AND FITNESS. IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-/// INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-/// LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-/// OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-/// PERFORMANCE OF THIS SOFTWARE.
+/// THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+/// WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+/// MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL ISC BE LIABLE FOR ANY
+/// SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+/// WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
+/// OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+/// CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #ifndef __util_h
 #define __util_h
@@ -22,8 +22,18 @@
 #include <iostream>
 #include <vector>
 
-#include "ns3/core-module.h"
+//#include "ns3/core-module.h"
 
+#include "ns3/nstime.h"
+
+namespace ns3 {
+// User defined literal for time values in seconds.
+ns3::Time operator"" _sec(const long double seconds);
+
+/// User defined literal for time values in minutes.
+ns3::Time operator"" _min(const long double minutes);
+
+} // namespace ns3
 /// User defined literal for metric lengths.
 constexpr int32_t operator"" _meters(const unsigned long long meters) {
   return static_cast<int32_t>(meters);
@@ -31,10 +41,14 @@ constexpr int32_t operator"" _meters(const unsigned long long meters) {
 constexpr double operator"" _meters(const long double meters) { return meters; }
 
 /// User defined literal for unit measures in seconds.
-constexpr double operator"" _seconds(const long double seconds) { return seconds; }
+constexpr double operator"" _seconds(const long double seconds) {
+  return seconds;
+}
 
 /// User defined literal for minute measures, auto converted to seconds.
-constexpr double operator"" _minutes(const long double minutes) { return minutes * 60; }
+constexpr double operator"" _minutes(const long double minutes) {
+  return minutes * 60;
+}
 
 /// User defined literal for meters/second velocities.
 constexpr double operator"" _mps(const long double mps) { return mps; }
@@ -45,10 +59,12 @@ constexpr int32_t operator"" _b(const unsigned long long bytes) {
 }
 
 /// User defined literal for percentages.
-constexpr double operator"" _percent(const long double num) { return num / 100.0; }
+constexpr double operator"" _percent(const long double num) {
+  return num / 100.0;
+}
 
 template <typename T>
-std::ostream& operator<<(std::ostream& os, const std::vector<T>& vec) {
+std::ostream &operator<<(std::ostream &os, const std::vector<T> &vec) {
   os << "[";
   for (size_t i = 0; i < vec.size(); i++) {
     os << vec[i];

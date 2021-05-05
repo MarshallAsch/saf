@@ -1,8 +1,7 @@
 
 #include "data.h"
 
-namespace saf {
-using namespace ns3;
+namespace ns3 {
 
 // default when creating the lists
 Data::Data() {
@@ -51,4 +50,4 @@ uint32_t Data::GetSize() { return m_size; }
 
 DataStatus Data::GetStatus() { return m_status; }
 
-}  // Namespace saf
+} // Namespace ns3

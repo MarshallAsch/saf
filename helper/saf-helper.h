@@ -1,34 +1,15 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
-/*
- * Copyright (c) 2008 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
-#ifndef SAF_APPLICATION_HELPER_H
-#define SAF_APPLICATION_HELPER_H
+#ifndef SAF_HELPER_H
+#define SAF_HELPER_H
 
-#include <stdint.h>
 #include "ns3/application-container.h"
 #include "ns3/node-container.h"
 #include "ns3/object-factory.h"
+#include <stdint.h>
 
-#include "saf-application.h"
+#include "ns3/saf.h"
 
-namespace saf {
-using namespace ns3;
+namespace ns3 {
 
 /**
  * \ingroup udpecho
@@ -36,7 +17,7 @@ using namespace ns3;
  *        and sends them back to the original sender.
  */
 class SafApplicationHelper {
- public:
+public:
   /**
    * Create SafApplicationHelper which will make life easier for people trying
    * to set up simulations with echos.
@@ -51,7 +32,7 @@ class SafApplicationHelper {
    * \param name the name of the attribute to set
    * \param value the value of the attribute to set
    */
-  void SetAttribute(std::string name, const AttributeValue& value);
+  void SetAttribute(std::string name, const AttributeValue &value);
 
   /**
    * Create a UdpEchoServerApplication on the specified Node.
@@ -86,7 +67,7 @@ class SafApplicationHelper {
    */
   ApplicationContainer Install(NodeContainer c) const;
 
- private:
+private:
   /**
    * Install an ns3::UdpEchoServer on the node configured with all the
    * attributes set with SetAttribute.
@@ -96,9 +77,9 @@ class SafApplicationHelper {
    */
   Ptr<Application> InstallPriv(Ptr<Node> node) const;
 
-  ObjectFactory m_factory;  //!< Object factory.
+  ObjectFactory m_factory; //!< Object factory.
 };
 
-}  // namespace saf
+} // namespace ns3
 
-#endif /* UDP_ECHO_HELPER_H */
+#endif /* SAF_HELPER_H */
