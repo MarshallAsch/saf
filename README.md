@@ -6,6 +6,14 @@
 
 # SAF Simulation
 
+This modified version of the SAF simulator is designed to allow the SAF storage scheme
+to run as a module independently of the simulation runner logic. 
+
+The previous version of this implementation involved putting this repository into the 
+`scratch` folder in NS-3, this is no longer the case. 
+This module is designed to be placed in the `contrib` folder so it can be used as its own module
+and can be run independently of my simulation runner code. 
+
 This NS-3 scratch simulator code that attempts to implement the SAF data storage
 scheme and reproduce the performance evaluation as described in:
 
@@ -54,11 +62,11 @@ Reproducibility is one of the key goals of simulator studies.
     python3 ./build.py --enable-examples
     ```
 
- 2. Change directories to the `scratch/` folder of the ns-3.32 source
+ 2. Change directories to the `contrib/` folder of the ns-3.32 source
     distribution.
 
     ```sh
-    cd ns-3.32/scratch/
+    cd ns-3.32/contrib/
     ```
 
  3. Clone this repository.
@@ -68,13 +76,28 @@ Reproducibility is one of the key goals of simulator studies.
     ```
 
 4. Change directory back to the `ns-3.32` folder of the source distribution
-   and run this simulation through the `waf` tool. This will compile the
-   simulation code and start executing the code.
+   and re-configure `./waf` so it can cache the new changes
 
    ```sh
    cd ..
-   ./waf --run 'scratch/saf/saf'
+   ./waf configure --enable-examples --enable-tests
+   ./waf build
    ```
+
+5. Run the example simulation that is included within the module.
+
+   ```sh
+   ./waf --run 'saf-example'
+   ```
+
+6. Create your own simulations using the SAF module. 
+   This is done the same way you would run any other simulation using NS-3. 
+   Setup your nodes, add a mobility model, install the SAF application using the
+   helper, then run the simulation. 
+
+   One this to note is that the current implementation does not separate the SAF
+   validation simulation from the base SAF implementation that can then be used 
+   in other applications, that is a work in progress.
 
 ## Running the simulation
 
@@ -86,20 +109,21 @@ Every parameter of the simulation is configurable. Run the following to see
 all the configurable parameters. The default values are as described in the
 SAF paper cited at the top of this document.
 
-```bash
-./waf --run 'scratch/saf/saf --printHelp'  # <-- mind the quotes!
+```sh
+./waf --run 'saf-example --printHelp'  # <-- mind the quotes!
 ```
 
 You can view an animation of the simulation using `NetAnim`, which is included
 with the ns-3 all-in-one distribution. To do so, run the following:
 
-```bash
-./waf --run 'scratch/saf/saf --animation-xml=path/to/saf.xml'
+```sh
+./waf --run 'saf-example --animation-xml=path/to/saf.xml'
 ```
 
 This will generate an XML file at the specified path. You can then open this
 file with `NetAnim` to view what happens during the simulation run.
 
+**NOTE: currently the generation of the animation has been disabled to improve the run time**
 
 ## Code style
 
@@ -110,9 +134,9 @@ The code can be formatted using the included python script created by Guillaume 
 
 The following command can be run to automatically reformat the code in place according the included style guideline.
 
-```bash
-$ ./run-clang-format.py -r -t --style file .
-``
+```sh
+./run-clang-format.py -r -i --style file .
+```
 
 ## Special Thanks
 
