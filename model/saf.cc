@@ -24,6 +24,8 @@
 
 #include "saf.h"
 
+#include "proto/message.pb.h"
+
 namespace ns3 {
 
 NS_OBJECT_ENSURE_REGISTERED(SafApplication);
@@ -610,6 +612,9 @@ Data SafApplication::GetDataItem(uint16_t dataID) {
 
 void SafApplication::AskPeers(uint16_t dataID, bool isReplication) {
   NS_LOG_FUNCTION(this);
+
+  saf::packets::Message msg;
+
   LookupMessage m = LookupMessage(dataID, isReplication);
   Ptr<Packet> p = m.ToPacket();
 

@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package saf.packets;
+
+enum MessageType {
+    PING = 0;
+    PONG = 1;
+    DATA_LOOKUP = 2;
+    DATA_RESPONSE = 3;
+}
+
+message Message {
+    MessageType type = 1;
+    uint64 id = 2;              // DO NOT SET THIS TO 0
+    uint64 response_to = 3;      // this is only set if this is a response message, default 0
+
+    uint64 origional_sent_at = 4; // this is the timestamp from the request, only set in the reponse
+    uint64 timestamp = 5;
+
+    oneof payload {
+        PingPong ping = 6;
+        Request request = 7;
+        Response response = 8;
+    }
+}
+
+message PingPong {
+    uint64 nodeID = 1;
+}
+
+
+message Request {
+    uint32 data_id = 1;
+    bool replication_request = 2;
+}
+
+message Response {
+    uint32 data_id = 1;
+    bool for_replication = 2;
+    bytes data = 3;
+}
