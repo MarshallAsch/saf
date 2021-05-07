@@ -21,7 +21,6 @@ def build(bld):
         'model/data.cc',
         'model/util.cc',
         'model/logging.cc',
-        'model/message.cc',
         'helper/saf-helper.cc',
         'model/proto/message.proto',
         ]

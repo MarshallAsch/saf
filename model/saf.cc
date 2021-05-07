@@ -19,7 +19,6 @@
 #include "ns3/uinteger.h"
 
 #include "logging.h"
-#include "message.h"
 #include "util.h"
 
 #include "saf.h"
@@ -412,30 +411,21 @@ void SafApplication::HandleRequest(Ptr<Socket> socket) {
     uint8_t* payload = new uint8_t[size];
     packet->CopyData(payload, size);
 
-    if (payload[0] == uint8_t(MessageType::lookup)) {
+    saf::packets::Message recvd;
+    bool status = recvd.ParseFromArray(payload, size);
+    delete[] payload;
+    if (!status) {
+      NS_LOG_ERROR("Failed to parse the payload");
+    }
+
+    if (recvd.has_request()) {
       NS_LOG_INFO("RECEIVED lookup command");
 
-      uint32_t requestID;
-      uint64_t sentAt;
-      uint16_t dataID;
-      bool isReplication;
-      memcpy(&requestID, &payload[5], sizeof(requestID));
-      memcpy(&sentAt, &payload[14], sizeof(sentAt));
-      memcpy(&dataID, &payload[30], sizeof(dataID));
-      isReplication = payload[32];
-
-      delete[] payload;
-
-      // Keeping this for the eventual debug purpose when I wonder why the data
-      // is not working std::cout << "-----------------------\n"; std::cout <<
-      // "sent at: " << sentAt << "\n"; std::cout << "req dataID: " << dataID <<
-      // "\n";
-
-      // std::cout << "receive: ";
-      // for (uint32_t i = 30 ; i < 32; i++) {
-      //   std::cout << unsigned(payload[i]) << " ";
-      // }
-      // std::cout << "\n";
+      saf::packets::Request req = recvd.request();
+      uint32_t requestID = recvd.id();
+      uint64_t sentAt  = recvd.timestamp();
+      uint16_t dataID  = req.data_id();
+      bool isReplication  = req.replication_request();
 
       // mark that the lookup request was received, this is to be able to detect
       // collisions
@@ -453,8 +443,33 @@ void SafApplication::HandleRequest(Ptr<Socket> socket) {
 
       NS_LOG_INFO("sending response");
       // generate and send response
-      ResponseMessage r = ResponseMessage(requestID, sentAt, isReplication, item);
-      Ptr<Packet> responsePacket = r.ToPacket();
+
+      saf::packets::Message send;
+      saf::packets::Response* resp = send.mutable_response();
+
+      payload = new uint8_t[item.GetSize()];
+
+      resp->set_data_id(item.GetDataID());
+      resp->set_replication_request(isReplication);
+      resp->set_data(payload, item.GetSize());
+
+      //send.set_response(resp);
+      send.set_timestamp(Simulator::Now().GetMilliSeconds());
+      send.set_original_sent_at(sentAt);
+      send.set_response_to(requestID);
+      send.set_id(SafApplication::GenMessageID());
+
+      delete[] payload;
+
+      size = send.ByteSizeLong();
+      payload = new uint8_t[size];
+      status = send.SerializeToArray(payload, size);
+      if (!status) {
+        NS_LOG_ERROR("Failed to serialize the message for transmission");
+      }
+
+      Ptr<Packet> responsePacket = Create<Packet>(payload, size);
+      delete[] payload;
 
       if (isReplication) {
         if (!m_realloc_rsp_sent_CB.IsNull()) m_realloc_rsp_sent_CB(dataID, GetNode()->GetId());
@@ -466,6 +481,11 @@ void SafApplication::HandleRequest(Ptr<Socket> socket) {
       NS_LOG_INFO("sent packet");
     }
   }
+}
+
+uint32_t SafApplication::GenMessageID() {
+  static uint32_t id = 0;
+  return ++id;
 }
 
 void SafApplication::HandleResponse(Ptr<Socket> socket) {
@@ -490,23 +510,25 @@ void SafApplication::HandleResponse(Ptr<Socket> socket) {
     uint8_t* payload = new uint8_t[size];
     packet->CopyData(payload, size);
 
+    saf::packets::Message recvd;
+    bool status = recvd.ParseFromArray(payload, size);
+    delete[] payload;
+    if (!status) {
+      NS_LOG_ERROR("Failed to parse the payload");
+    }
+
     NS_LOG_INFO("handling data received: " << payload[0]);
 
-    if (payload[0] == uint8_t(MessageType::dataResponse)) {
+    if (recvd.has_response()) {
       NS_LOG_INFO("handling data received");
-      uint16_t dataID;
-      uint32_t dataSize;
-      uint32_t origID;
-      uint64_t askTime;
-      bool isReplication;
+      saf::packets::Response resp = recvd.response();
 
-      memcpy(&dataSize, &payload[1], sizeof(dataSize));
-      memcpy(&askTime, &payload[22], sizeof(askTime));
-      memcpy(&origID, &payload[9], sizeof(origID));
-      memcpy(&dataID, &payload[30], sizeof(dataID));
-      isReplication = payload[32];
-      dataSize -= (sizeof(dataID) - 1);
-      delete[] payload;
+      uint32_t origID = recvd.response_to();
+      uint64_t askTime  = recvd.original_sent_at();
+      uint16_t dataID  = resp.data_id();
+      const std::string& data = resp.data();
+      bool isReplication  = resp.replication_request();
+      uint32_t dataSize = data.size();
 
       Data item = Data(dataID, dataSize);
       SaveDataItem(item);
@@ -613,43 +635,58 @@ Data SafApplication::GetDataItem(uint16_t dataID) {
 void SafApplication::AskPeers(uint16_t dataID, bool isReplication) {
   NS_LOG_FUNCTION(this);
 
-  saf::packets::Message msg;
+  uint32_t reqID = SafApplication::GenMessageID();
+  saf::packets::Message send;
+  saf::packets::Request* req = send.mutable_request();
 
-  LookupMessage m = LookupMessage(dataID, isReplication);
-  Ptr<Packet> p = m.ToPacket();
+  req->set_data_id(dataID);
+  req->set_replication_request(isReplication);
+
+  send.set_timestamp(Simulator::Now().GetMilliSeconds());
+  send.set_id(reqID);
+
+  uint32_t size = send.ByteSizeLong();
+  uint8_t* payload = new uint8_t[size];
+  bool status = send.SerializeToArray(payload, size);
+  if (!status) {
+    NS_LOG_ERROR("Failed to serialize the message for transmission");
+  }
+
+  Ptr<Packet> packet = Create<Packet>(payload, size);
+  delete[] payload;
 
   Address localAddress;
   m_socket_send->GetSockName(localAddress);
 
   // call to the trace sinks before the packet is actually sent,
   // so that tags added to the packet can be sent as well
-  m_txTrace(p);
-  m_txTraceWithAddresses(p, localAddress, InetSocketAddress(Ipv4Address::GetBroadcast(), m_port));
+  m_txTrace(packet);
+  m_txTraceWithAddresses(packet, localAddress, InetSocketAddress(Ipv4Address::GetBroadcast(), m_port));
 
   // TODO: use add a hook to the router to get all of the other one hop nodes in
   // the routing table to get the total number of recipients
 
   if (isReplication) {
-    m_pending_reallocations.insert(m.getRequestID());  // add to pending list
+    m_pending_reallocations.insert(reqID);  // add to pending list
     // stats for reallocation
     if (!m_realloc_sent_CB.IsNull()) m_realloc_sent_CB(dataID, GetNode()->GetId());
 
     if (Simulator::Now() + m_request_timeout < m_stopTime) {
       Simulator::
-          Schedule(m_request_timeout, &SafApplication::ReallocationTimeout, this, m.getRequestID());
+          Schedule(m_request_timeout, &SafApplication::ReallocationTimeout, this, reqID);
     }
   } else {
-    m_pending_lookups.insert(m.getRequestID());  // add to pending list
+    m_pending_lookups.insert(reqID);  // add to pending list
     // stats for 'normal lookup'
     if (!m_lookup_sent_CB.IsNull()) m_lookup_sent_CB(dataID, GetNode()->GetId());
 
     if (Simulator::Now() + m_request_timeout < m_stopTime) {
       Simulator::
-          Schedule(m_request_timeout, &SafApplication::LookupTimeout, this, m.getRequestID());
+          Schedule(m_request_timeout, &SafApplication::LookupTimeout, this, reqID);
     }
   }
 
-  m_socket_send->Send(p);
+  m_socket_send->Send(packet);
   m_sent++;
 
   NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s sent request for " << dataID);

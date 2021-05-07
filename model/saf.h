@@ -97,6 +97,8 @@ class SafApplication : public Application {
 
   void LookupData(uint16_t dataID);
 
+  static uint32_t GenMessageID();
+
   uint32_t m_size;  //!< Size of the sent packet
 
   uint32_t m_dataSize;  //!< packet payload size (must be equal to m_size)
