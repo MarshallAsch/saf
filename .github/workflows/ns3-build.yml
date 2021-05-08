@@ -13,5 +13,6 @@ jobs:
       uses: marshallasch/ns3-action@V0.8.0
       with:
         location: 'contrib'
+        pre_run: './contrib/saf/pre.sh'
         sim_name: 'saf-example'
         sim_args: '--run-time=900 --total-nodes=5'
