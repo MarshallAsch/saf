@@ -24,8 +24,8 @@
 
 /**
  *
- * This is the third test of a basic NS3 simulation that will create a one goup of nodes
- * and have them move arround randomly. This will also create an animation for netanim
+ * This is the third test of a basic NS3 simulation that will create a one group of nodes
+ * and have them move around randomly. This will also create an animation for netanim
  *
  * This is the first part in the progressive tesing.
  * This is a continuation of part 1 where we setup a wireless mesh network for the nodes.
@@ -45,6 +45,7 @@
 #include "ns3/core-module.h"
 #include "ns3/csma-module.h"
 #include "ns3/internet-module.h"
+#include "ns3/log.h"
 #include "ns3/network-module.h"
 #include "ns3/node-container.h"
 #include "ns3/object-factory.h"
@@ -62,7 +63,6 @@
 #include "ns3/saf-helper.h"
 #include "ns3/util.h"
 
-#include "logging.h"
 #include "nsutil.h"
 #include "simulation-params.h"
 
@@ -312,11 +312,9 @@ int main(int argc, char* argv[]) {
   InternetStackHelper internet;
 
   if (params.routingProtocol == RoutingType::DSDV) {
-    NS_LOG_DEBUG("Using DSDV routing.");
     DsdvHelper dsdv;
     internet.SetRoutingHelper(dsdv);
   } else if (params.routingProtocol == RoutingType::AODV) {
-    NS_LOG_DEBUG("Using AODV routing.");
     AodvHelper aodv;
     internet.SetRoutingHelper(aodv);
   }

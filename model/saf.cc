@@ -423,9 +423,9 @@ void SafApplication::HandleRequest(Ptr<Socket> socket) {
 
       saf::packets::Request req = recvd.request();
       uint32_t requestID = recvd.id();
-      uint64_t sentAt  = recvd.timestamp();
-      uint16_t dataID  = req.data_id();
-      bool isReplication  = req.replication_request();
+      uint64_t sentAt = recvd.timestamp();
+      uint16_t dataID = req.data_id();
+      bool isReplication = req.replication_request();
 
       // mark that the lookup request was received, this is to be able to detect
       // collisions
@@ -453,7 +453,7 @@ void SafApplication::HandleRequest(Ptr<Socket> socket) {
       resp->set_replication_request(isReplication);
       resp->set_data(payload, item.GetSize());
 
-      //send.set_response(resp);
+      // send.set_response(resp);
       send.set_timestamp(Simulator::Now().GetMilliSeconds());
       send.set_original_sent_at(sentAt);
       send.set_response_to(requestID);
@@ -524,10 +524,10 @@ void SafApplication::HandleResponse(Ptr<Socket> socket) {
       saf::packets::Response resp = recvd.response();
 
       uint32_t origID = recvd.response_to();
-      uint64_t askTime  = recvd.original_sent_at();
-      uint16_t dataID  = resp.data_id();
+      uint64_t askTime = recvd.original_sent_at();
+      uint16_t dataID = resp.data_id();
       const std::string& data = resp.data();
-      bool isReplication  = resp.replication_request();
+      bool isReplication = resp.replication_request();
       uint32_t dataSize = data.size();
 
       Data item = Data(dataID, dataSize);
@@ -661,7 +661,10 @@ void SafApplication::AskPeers(uint16_t dataID, bool isReplication) {
   // call to the trace sinks before the packet is actually sent,
   // so that tags added to the packet can be sent as well
   m_txTrace(packet);
-  m_txTraceWithAddresses(packet, localAddress, InetSocketAddress(Ipv4Address::GetBroadcast(), m_port));
+  m_txTraceWithAddresses(
+      packet,
+      localAddress,
+      InetSocketAddress(Ipv4Address::GetBroadcast(), m_port));
 
   // TODO: use add a hook to the router to get all of the other one hop nodes in
   // the routing table to get the total number of recipients
@@ -672,8 +675,7 @@ void SafApplication::AskPeers(uint16_t dataID, bool isReplication) {
     if (!m_realloc_sent_CB.IsNull()) m_realloc_sent_CB(dataID, GetNode()->GetId());
 
     if (Simulator::Now() + m_request_timeout < m_stopTime) {
-      Simulator::
-          Schedule(m_request_timeout, &SafApplication::ReallocationTimeout, this, reqID);
+      Simulator::Schedule(m_request_timeout, &SafApplication::ReallocationTimeout, this, reqID);
     }
   } else {
     m_pending_lookups.insert(reqID);  // add to pending list
@@ -681,8 +683,7 @@ void SafApplication::AskPeers(uint16_t dataID, bool isReplication) {
     if (!m_lookup_sent_CB.IsNull()) m_lookup_sent_CB(dataID, GetNode()->GetId());
 
     if (Simulator::Now() + m_request_timeout < m_stopTime) {
-      Simulator::
-          Schedule(m_request_timeout, &SafApplication::LookupTimeout, this, reqID);
+      Simulator::Schedule(m_request_timeout, &SafApplication::LookupTimeout, this, reqID);
     }
   }
 

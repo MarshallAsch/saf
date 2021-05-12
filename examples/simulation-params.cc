@@ -26,7 +26,6 @@
 #include "ns3/double.h"
 #include "ns3/util.h"
 
-#include "logging.h"
 #include "simulation-params.h"
 
 namespace saf {
@@ -142,77 +141,77 @@ std::pair<SimulationParameters, bool> SimulationParameters::parse(int argc, char
 
   SimulationParameters result;
   if (optStartupDelay < 0) {
-    NS_LOG_ERROR("startup delay(" << optStartupDelay << ") is cannot be negative");
+    std::cerr << "startup delay(" << optStartupDelay << ") is cannot be negative" << std::endl;
     return std::pair<SimulationParameters, bool>(result, false);
   }
   if (optRuntime < 0) {
-    NS_LOG_ERROR("simulation run time (" << optRuntime << ") is cannot be negative");
+    std::cerr << "simulation run time (" << optRuntime << ") is cannot be negative" << std::endl;
     return std::pair<SimulationParameters, bool>(result, false);
   }
   if (optDataFrequencyType > 3) {
-    NS_LOG_ERROR(
-        "Access frequency type (" << optDataFrequencyType
-                                  << ") is not a valid, must be one of [1,2,3]");
+    std::cerr << "Access frequency type (" << optDataFrequencyType
+              << ") is not a valid, must be one of [1,2,3]" << std::endl;
     return std::pair<SimulationParameters, bool>(result, false);
   }
   if (optReplicaSpace > 150) {
-    NS_LOG_ERROR(
-        "Replica storage space (" << optReplicaSpace
-                                  << ") is not valid, probably a signed overflow");
+    std::cerr << "Replica storage space (" << optReplicaSpace
+              << ") is not valid, probably a signed overflow" << std::endl;
     return std::pair<SimulationParameters, bool>(result, false);
   }
   if (optRelocationPeriod < 0) {
-    NS_LOG_ERROR("replica allocation period (" << optRelocationPeriod << ") is cannot be negative");
+    std::cerr << "replica allocation period (" << optRelocationPeriod << ") is cannot be negative"
+              << std::endl;
     return std::pair<SimulationParameters, bool>(result, false);
   }
   if (optRequestTimeout < 0) {
-    NS_LOG_ERROR("request timeout (" << optRequestTimeout << ") is cannot be negative");
+    std::cerr << "request timeout (" << optRequestTimeout << ") is cannot be negative" << std::endl;
     return std::pair<SimulationParameters, bool>(result, false);
   }
   if (optMinPause < 0) {
-    NS_LOG_ERROR("pause time minimum (" << optMinPause << ") is cannot be negative");
+    std::cerr << "pause time minimum (" << optMinPause << ") is cannot be negative" << std::endl;
     return std::pair<SimulationParameters, bool>(result, false);
   }
   if (optMaxPause < optMinPause) {
-    NS_LOG_ERROR("pause time max (" << optMaxPause << ") is cannot be less than the minimum");
+    std::cerr << "pause time max (" << optMaxPause << ") is cannot be less than the minimum"
+              << std::endl;
     return std::pair<SimulationParameters, bool>(result, false);
   }
   if (optMinSpeed < 0 || optMinSpeed > 60) {
-    NS_LOG_ERROR(
-        "speed minimum (" << optMinSpeed << ") is cannot be negative, or greater than 60 m/s");
+    std::cerr << "speed minimum (" << optMinSpeed
+              << ") is cannot be negative, or greater than 60 m/s" << std::endl;
     return std::pair<SimulationParameters, bool>(result, false);
   }
   if (optMaxSpeed < optMinSpeed) {
-    NS_LOG_ERROR("speed max (" << optMaxPause << ") is cannot be less than the minimum");
+    std::cerr << "speed max (" << optMaxPause << ") is cannot be less than the minimum"
+              << std::endl;
     return std::pair<SimulationParameters, bool>(result, false);
   }
   if (optAreaLength < 0) {
-    NS_LOG_ERROR("simulation length (" << optAreaLength << ") is cannot be negative");
+    std::cerr << "simulation length (" << optAreaLength << ") is cannot be negative" << std::endl;
     return std::pair<SimulationParameters, bool>(result, false);
   }
   if (optAreaWidth < 0) {
-    NS_LOG_ERROR("simulation width (" << optAreaWidth << ") is cannot be negative");
+    std::cerr << "simulation width (" << optAreaWidth << ") is cannot be negative" << std::endl;
     return std::pair<SimulationParameters, bool>(result, false);
   }
 
   RoutingType routingType = getRoutingType(optRoutingProtocol);
   if (routingType == RoutingType::UNKNOWN) {
-    NS_LOG_ERROR("Unrecognized routing type '" + optRoutingProtocol + "'.");
+    std::cerr << "Unrecognized routing type '" + optRoutingProtocol + "'." << std::endl;
     return std::pair<SimulationParameters, bool>(result, false);
   }
   if (optTotalDataItems == 0) {
-    NS_LOG_ERROR("Number of data items (" << optTotalDataItems << ") cannot be 0");
+    std::cerr << "Number of data items (" << optTotalDataItems << ") cannot be 0" << std::endl;
     return std::pair<SimulationParameters, bool>(result, false);
   }
   if (optTotalNodes == 0) {
-    NS_LOG_ERROR("Number of nodes (" << optTotalNodes << ") cannot be 0");
+    std::cerr << "Number of nodes (" << optTotalNodes << ") cannot be 0" << std::endl;
     return std::pair<SimulationParameters, bool>(result, false);
   }
   if (optTotalDataItems % optTotalNodes != 0) {
-    NS_LOG_ERROR(
-        "Number of data items (" << optTotalDataItems
-                                 << ") must be divisable by the number of nodes (" << optTotalNodes
-                                 << ")");
+    std::cerr << "Number of data items (" << optTotalDataItems
+              << ") must be divisable by the number of nodes (" << optTotalNodes << ")"
+              << std::endl;
     return std::pair<SimulationParameters, bool>(result, false);
   }
 
