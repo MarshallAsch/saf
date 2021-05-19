@@ -1,27 +1,10 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
-/*
- * Copyright 2007 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
-#ifndef SAF_APPLICATION_H
-#define SAF_APPLICATION_H
+#ifndef SAF_H
+#define SAF_H
 
 #include <set>     // std::set
 #include <vector>  // std::vector
-#include "data.h"
+
 #include "ns3/application.h"
 #include "ns3/basic-data-calculators.h"
 #include "ns3/callback.h"
@@ -35,11 +18,9 @@
 #include "ns3/time-data-calculators.h"
 #include "ns3/traced-callback.h"
 
-namespace saf {
-using namespace ns3;
+#include "data.h"
 
-// class Socket;
-// class Packet;
+namespace ns3 {
 
 /**
  * \ingroup udpecho
@@ -116,6 +97,8 @@ class SafApplication : public Application {
 
   void LookupData(uint16_t dataID);
 
+  static uint32_t GenMessageID();
+
   uint32_t m_size;  //!< Size of the sent packet
 
   uint32_t m_dataSize;  //!< packet payload size (must be equal to m_size)
@@ -129,19 +112,22 @@ class SafApplication : public Application {
   EventId m_reallocation_event;  // for pending reallocation events
 
   std::vector<Data> m_replica_data_items;    // the block of memory to hold the data items
-  std::vector<Data> m_origianal_data_items;  // the block of memory to hold the originals data items
+  std::vector<Data> m_origianal_data_items;  // the block of memory to hold the
+                                             // originals data items
 
-  std::vector<std::vector<uint16_t> > m_access_frequencies;
+  std::vector<std::vector<uint16_t>> m_access_frequencies;
   std::set<uint32_t> m_pending_lookups;
   std::set<uint32_t> m_pending_reallocations;
 
-  // uint16_t* m_access_frequencies; // since the access frequencies are static and known for all
-  // data items
+  // uint16_t* m_access_frequencies; // since the access frequencies are static
+  // and known for all data items
   uint16_t m_total_data_items;
   uint32_t m_total_num_nodes;
 
-  uint16_t m_origianal_space;  // the number of data items that can be stored by the node
-  uint16_t m_replica_space;    // the number of data items that can be stored by the node
+  uint16_t m_origianal_space;  // the number of data items that can be stored by
+                               // the node
+  uint16_t m_replica_space;    // the number of data items that can be stored by
+                               // the node
 
   uint16_t m_access_frequency_type;
   double m_standard_deviation;
@@ -151,7 +137,7 @@ class SafApplication : public Application {
 
   bool m_running;
 
-  std::vector<Ptr<ExponentialRandomVariable> > m_data_lookup_generator;
+  std::vector<Ptr<ExponentialRandomVariable>> m_data_lookup_generator;
 
   double CalculateAccessFrequency(uint16_t dataID);
 
@@ -168,15 +154,17 @@ class SafApplication : public Application {
   void ScheduleNextLookup(uint16_t dataID);
 
   /// Callbacks for tracing the packet Tx events
-  TracedCallback<Ptr<const Packet> > m_txTrace;
+  TracedCallback<Ptr<const Packet>> m_txTrace;
 
   /// Callbacks for tracing the packet Rx events
-  TracedCallback<Ptr<const Packet> > m_rxTrace;
+  TracedCallback<Ptr<const Packet>> m_rxTrace;
 
-  /// Callbacks for tracing the packet Tx events, includes source and destination addresses
+  /// Callbacks for tracing the packet Tx events, includes source and
+  /// destination addresses
   TracedCallback<Ptr<const Packet>, const Address&, const Address&> m_txTraceWithAddresses;
 
-  /// Callbacks for tracing the packet Rx events, includes source and destination addresses
+  /// Callbacks for tracing the packet Rx events, includes source and
+  /// destination addresses
   TracedCallback<Ptr<const Packet>, const Address&, const Address&> m_rxTraceWithAddresses;
 
   Callback<void, uint16_t, uint32_t> m_cache_hit_CB;
@@ -194,7 +182,6 @@ class SafApplication : public Application {
   Callback<void, uint16_t, uint32_t, ns3::Time> m_realloc_ontime_CB;
   Callback<void, uint16_t, uint32_t, ns3::Time> m_realloc_late_CB;
 };
+}  // namespace ns3
 
-}  // namespace saf
-
-#endif /*  SAF_APPLICATION_H */
+#endif /* SAF_H */

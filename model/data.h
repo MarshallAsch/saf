@@ -7,8 +7,7 @@
 #include <string.h>
 #include "ns3/uinteger.h"
 
-namespace saf {
-using namespace ns3;
+namespace ns3 {
 
 enum class DataStatus { unknown, free, stored, pending };
 
@@ -22,7 +21,8 @@ class Data {
   uint32_t m_size;
   DataStatus m_status;
   DataType m_type;
-  // uint16_t m_access_frequency; // how many times this data item is accessed per reloaction period
+  // uint16_t m_access_frequency; // how many times this data item is accessed
+  // per reloaction period
 
  public:
   Data();                                 // default do not call this
@@ -39,6 +39,6 @@ class Data {
   DataStatus GetStatus();
 };
 
-}  // namespace saf
+}  // namespace ns3
 
 #endif /*  SAF_DATA_H */
